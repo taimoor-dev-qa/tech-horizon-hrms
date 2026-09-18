@@ -1,4 +1,5 @@
-import Project from "../models/Project.js";
+import Project
+  from "../models/Project.js";
 
 import {
   validateProjectDates,
@@ -6,67 +7,128 @@ import {
   validateProjectMembers,
 } from "./projectValidationService.js";
 
-export const createProject = async (data) => {
-  const existing = await Project.findOne({
-    code: data.code?.toUpperCase(),
-  });
+import {
+  validateProjectCreationAccess,
+  validateProjectManagementAccess,
+} from "./projectAccessService.js";
 
-  if (existing) {
-    throw new Error(
-      "Project code already exists"
+export const createProject =
+  async (
+    data,
+    actor
+  ) => {
+    const existing =
+      await Project.findOne({
+        code:
+          data.code?.toUpperCase(),
+      });
+
+    if (existing) {
+      throw new Error(
+        "Project code already exists"
+      );
+    }
+
+    await validateProjectCreationAccess(
+      actor,
+      data.manager
     );
-  }
 
-  validateProjectDates(
-    data.startDate,
-    data.deadline
-  );
+    validateProjectDates(
+      data.startDate,
+      data.deadline
+    );
 
-  await validateProjectManager(data.manager);
+    await validateProjectManager(
+      data.manager
+    );
 
-  await validateProjectMembers(
-    data.members || []
-  );
+    await validateProjectMembers(
+      data.members || []
+    );
 
-  return Project.create(data);
-};
+    return Project.create(
+      data
+    );
+  };
 
-export const updateProject = async (
-  id,
-  data
-) => {
-  const project = await Project.findById(id);
+export const updateProject =
+  async (
+    id,
+    data,
+    actor
+  ) => {
+    const project =
+      await Project.findById(
+        id
+      );
 
-  if (!project) {
-    return null;
-  }
+    if (!project) {
+      return null;
+    }
 
-  const startDate =
-    data.startDate || project.startDate;
+    await validateProjectManagementAccess(
+      actor,
+      project
+    );
 
-  const deadline =
-    data.deadline || project.deadline;
+    const startDate =
+      data.startDate ||
+      project.startDate;
 
-  validateProjectDates(
-    startDate,
-    deadline
-  );
+    const deadline =
+      data.deadline ||
+      project.deadline;
 
-  if (data.manager) {
-    await validateProjectManager(data.manager);
-  }
+    validateProjectDates(
+      startDate,
+      deadline
+    );
 
-  if (data.members) {
-    await validateProjectMembers(data.members);
-  }
+    if (data.manager) {
+      await validateProjectManager(
+        data.manager
+      );
 
-  Object.assign(project, data);
+      if (
+        ![
+          "super_admin",
+          "hr_admin",
+        ].includes(actor.role)
+      ) {
+        const currentManager =
+          project.manager;
 
-  await project.save();
+        if (
+          String(data.manager) !==
+          String(currentManager)
+        ) {
+          throw new Error(
+            "Manager cannot transfer project ownership"
+          );
+        }
+      }
+    }
 
-  return project;
-};
+    if (data.members) {
+      await validateProjectMembers(
+        data.members
+      );
+    }
 
-export const deleteProject = async (id) => {
-  return Project.findByIdAndDelete(id);
-};
+    Object.assign(
+      project,
+      data
+    );
+
+    await project.save();
+
+    return project;
+  };
+
+export const deleteProject =
+  async (id) => {
+    return Project.findByIdAndDelete(
+      id
+    );
+  };

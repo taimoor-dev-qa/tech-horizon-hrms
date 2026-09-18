@@ -16,7 +16,10 @@ export const createProject = async (
 ) => {
   try {
     const project =
-      await createProjectService(req.body);
+      await createProjectService(
+        req.body,
+        req.user
+      );
 
     res.status(201).json({
       success: true,
@@ -37,7 +40,10 @@ export const getProjects = async (
 ) => {
   try {
     const projects =
-      await getProjectsService(req.query);
+      await getProjectsService(
+        req.user,
+        req.query
+      );
 
     res.status(200).json({
       success: true,
@@ -82,6 +88,7 @@ export const getProjectById = async (
   try {
     const project =
       await getProjectByIdService(
+        req.user,
         req.params.id
       );
 
@@ -110,10 +117,11 @@ export const updateProject = async (
 ) => {
   try {
     const project =
-      await updateProjectService(
-        req.params.id,
-        req.body
-      );
+  await updateProjectService(
+    req.params.id,
+    req.body,
+    req.user
+  );
 
     if (!project) {
       return res.status(404).json({

@@ -1,30 +1,49 @@
-import Employee from "../models/Employee.js";
-import Project from "../models/Project.js";
+import Employee
+  from "../models/Employee.js";
 
-const populateProject = (query) => {
+import Project
+  from "../models/Project.js";
+
+import {
+  canAccessProject,
+  getProjectAccessCondition,
+} from "./projectAccessService.js";
+
+const populateProject = (
+  query
+) => {
   return query
     .populate({
       path: "manager",
-      select: "employeeId user designation",
+
+      select:
+        "employeeId user designation",
+
       populate: [
         {
           path: "user",
           select: "name email",
         },
+
         {
           path: "designation",
           select: "name code",
         },
       ],
     })
+
     .populate({
       path: "members",
-      select: "employeeId user designation",
+
+      select:
+        "employeeId user designation",
+
       populate: [
         {
           path: "user",
           select: "name email",
         },
+
         {
           path: "designation",
           select: "name code",
@@ -33,76 +52,135 @@ const populateProject = (query) => {
     });
 };
 
-export const getProjects = async ({
-  status,
-  priority,
-  search,
-} = {}) => {
-  const filter = {};
+export const getProjects =
+  async (
+    actor,
+    {
+      status,
+      priority,
+      search,
+    } = {}
+  ) => {
+    const filter = {};
 
-  if (status) {
-    filter.status = status;
-  }
+    if (status) {
+      filter.status = status;
+    }
 
-  if (priority) {
-    filter.priority = priority;
-  }
+    if (priority) {
+      filter.priority =
+        priority;
+    }
 
-  if (search) {
-    filter.$or = [
-      {
-        name: {
-          $regex: search,
-          $options: "i",
-        },
-      },
-      {
-        code: {
-          $regex: search,
-          $options: "i",
-        },
-      },
-      {
-        client: {
-          $regex: search,
-          $options: "i",
-        },
-      },
-    ];
-  }
+    const conditions = [];
 
-  return populateProject(
-    Project.find(filter).sort({
-      createdAt: -1,
-    })
-  );
-};
+    if (search) {
+      conditions.push({
+        $or: [
+          {
+            name: {
+              $regex: search,
+              $options: "i",
+            },
+          },
 
-export const getProjectById = async (id) => {
-  return populateProject(
-    Project.findById(id)
-  );
-};
+          {
+            code: {
+              $regex: search,
+              $options: "i",
+            },
+          },
 
-export const getMyProjects = async (
-  userId
-) => {
-  const employee = await Employee.findOne({
-    user: userId,
-  });
+          {
+            client: {
+              $regex: search,
+              $options: "i",
+            },
+          },
+        ],
+      });
+    }
 
-  if (!employee) {
-    throw new Error(
-      "Employee profile not found"
+    const accessCondition =
+      await getProjectAccessCondition(
+        actor
+      );
+
+    if (accessCondition) {
+      conditions.push(
+        accessCondition
+      );
+    }
+
+    if (conditions.length) {
+      filter.$and =
+        conditions;
+    }
+
+    return populateProject(
+      Project.find(filter).sort({
+        createdAt: -1,
+      })
     );
-  }
+  };
 
-  return populateProject(
-    Project.find({
-      $or: [
-        { manager: employee._id },
-        { members: employee._id },
-      ],
-    }).sort({ createdAt: -1 })
-  );
-};
+export const getProjectById =
+  async (
+    actor,
+    id
+  ) => {
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return null;
+    }
+
+    const allowed =
+      await canAccessProject(
+        actor,
+        project
+      );
+
+    if (!allowed) {
+      throw new Error(
+        "You do not have access to this project"
+      );
+    }
+
+    return populateProject(
+      Project.findById(id)
+    );
+  };
+
+export const getMyProjects =
+  async (userId) => {
+    const employee =
+      await Employee.findOne({
+        user: userId,
+      });
+
+    if (!employee) {
+      throw new Error(
+        "Employee profile not found"
+      );
+    }
+
+    return populateProject(
+      Project.find({
+        $or: [
+          {
+            manager:
+              employee._id,
+          },
+
+          {
+            members:
+              employee._id,
+          },
+        ],
+      }).sort({
+        createdAt: -1,
+      })
+    );
+  };

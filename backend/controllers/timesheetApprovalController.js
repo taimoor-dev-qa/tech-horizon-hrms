@@ -10,7 +10,7 @@ export const getPendingTimesheets = async (
   try {
     const timesheets =
       await getManagerPendingTimesheets(
-        req.user._id
+        req.user
       );
 
     res.status(200).json({
