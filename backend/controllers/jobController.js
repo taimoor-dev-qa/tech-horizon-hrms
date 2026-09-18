@@ -37,9 +37,11 @@ export const getJobs = async (
   res
 ) => {
   try {
-    const jobs = await getJobsService(
-      req.query
-    );
+    const jobs =
+      await getJobsService(
+        req.user,
+        req.query
+      );
 
     res.status(200).json({
       success: true,
@@ -59,9 +61,11 @@ export const getJobById = async (
   res
 ) => {
   try {
-    const job = await getByIdService(
-      req.params.id
-    );
+    const job =
+      await getByIdService(
+        req.user,
+        req.params.id
+      );
 
     if (!job) {
       return res.status(404).json({
@@ -75,7 +79,9 @@ export const getJobById = async (
       job,
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(
+      error.statusCode || 400
+    ).json({
       success: false,
       message: error.message,
     });

@@ -1,56 +1,97 @@
-import Job from "../models/Job.js";
+import Job
+  from "../models/Job.js";
 
-const populateJob = (query) => {
+import {
+  applyJobReadAccess,
+  validateJobReadAccess,
+} from "./recruitmentAccessService.js";
+
+const populateJob = (
+  query
+) => {
   return query
-    .populate("department", "name code")
-    .populate("designation", "name code")
+    .populate(
+      "department",
+      "name code"
+    )
+    .populate(
+      "designation",
+      "name code"
+    )
     .populate(
       "createdBy",
       "name email role"
     );
 };
 
-export const getJobs = async ({
-  status,
-  department,
-  search,
-} = {}) => {
-  const filter = {};
+export const getJobs =
+  async (
+    actor,
+    {
+      status,
+      department,
+      search,
+    } = {}
+  ) => {
+    const filter = {};
 
-  if (status) {
-    filter.status = status;
-  }
+    if (status) {
+      filter.status = status;
+    }
 
-  if (department) {
-    filter.department = department;
-  }
+    if (department) {
+      filter.department =
+        department;
+    }
 
-  if (search) {
-    filter.$or = [
-      {
-        title: {
-          $regex: search,
-          $options: "i",
+    if (search) {
+      filter.$or = [
+        {
+          title: {
+            $regex: search,
+            $options: "i",
+          },
         },
-      },
-      {
-        code: {
-          $regex: search,
-          $options: "i",
+        {
+          code: {
+            $regex: search,
+            $options: "i",
+          },
         },
-      },
-    ];
-  }
+      ];
+    }
 
-  return populateJob(
-    Job.find(filter).sort({
-      createdAt: -1,
-    })
-  );
-};
+    applyJobReadAccess(
+      actor,
+      filter,
+      status
+    );
 
-export const getJobById = async (id) => {
-  return populateJob(
-    Job.findById(id)
-  );
-};
+    return populateJob(
+      Job.find(filter).sort({
+        createdAt: -1,
+      })
+    );
+  };
+
+export const getJobById =
+  async (
+    actor,
+    id
+  ) => {
+    const job =
+      await Job.findById(id);
+
+    if (!job) {
+      return null;
+    }
+
+    validateJobReadAccess(
+      actor,
+      job
+    );
+
+    return populateJob(
+      Job.findById(id)
+    );
+  };

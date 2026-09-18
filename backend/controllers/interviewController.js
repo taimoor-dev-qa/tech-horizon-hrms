@@ -82,6 +82,7 @@ export const getInterviewById = async (
 ) => {
   try {
     const interview = await getByIdService(
+      req.user,
       req.params.id
     );
 
@@ -97,7 +98,9 @@ export const getInterviewById = async (
       interview,
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(
+      error.statusCode || 400
+    ).json({
       success: false,
       message: error.message,
     });
