@@ -35,7 +35,10 @@ export const getPerformanceReviews =
   async (req, res) => {
     try {
       const reviews =
-        await getReviewsService(req.query);
+        await getReviewsService(
+          req.user,
+          req.query
+        );
 
       res.status(200).json({
         success: true,
@@ -67,15 +70,18 @@ export const getMyPerformanceReviews =
         success: false,
         message: error.message,
       });
+
     }
   };
 
 export const getPerformanceReviewById =
   async (req, res) => {
     try {
-      const review = await getByIdService(
-        req.params.id
-      );
+      const review =
+        await getByIdService(
+          req.user,
+          req.params.id
+        );
 
       if (!review) {
         return res.status(404).json({
