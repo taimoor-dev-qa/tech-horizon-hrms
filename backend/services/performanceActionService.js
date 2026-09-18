@@ -1,3 +1,7 @@
+import {
+  notifyPerformanceSubmitted,
+} from "./performanceNotificationService.js";
+
 import Employee from "../models/Employee.js";
 import PerformanceReview
   from "../models/PerformanceReview.js";
@@ -33,7 +37,7 @@ export const submitPerformanceReview =
 
     if (
       String(review.reviewer) !==
-        String(actor._id) &&
+      String(actor._id) &&
       !hasAdminAccess
     ) {
       throw new Error(
@@ -44,9 +48,14 @@ export const submitPerformanceReview =
     review.status =
       PERFORMANCE_STATUS.SUBMITTED;
 
-    review.submittedAt = new Date();
+    review.submittedAt =
+      new Date();
 
     await review.save();
+
+    await notifyPerformanceSubmitted(
+      review
+    );
 
     return review;
   };

@@ -1,3 +1,8 @@
+import {
+  notifyInterviewCancelled,
+  notifyInterviewScheduled,
+} from "./interviewNotificationService.js";
+
 import Candidate from "../models/Candidate.js";
 import Interview from "../models/Interview.js";
 
@@ -81,6 +86,10 @@ export const createInterview = async (
     data.type
   );
 
+  await notifyInterviewScheduled(
+    interview
+  );
+
   return interview;
 };
 
@@ -157,6 +166,10 @@ export const cancelInterview = async (id) => {
     INTERVIEW_STATUS.CANCELLED;
 
   await interview.save();
+
+  await notifyInterviewCancelled(
+    interview
+  );
 
   return interview;
 };

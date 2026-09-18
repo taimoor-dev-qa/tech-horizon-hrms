@@ -1,3 +1,8 @@
+import {
+  notifyPayrollGenerated,
+  notifyPayrollPaid,
+} from "./payrollNotificationService.js";
+
 import Payroll
   from "../models/Payroll.js";
 
@@ -41,6 +46,10 @@ export const generatePayroll =
 
     await payroll.save();
 
+    await notifyPayrollGenerated(
+      payroll
+    );
+
     return payroll;
   };
 
@@ -77,6 +86,10 @@ export const markPayrollPaid =
       paymentReference || "";
 
     await payroll.save();
+
+    await notifyPayrollPaid(
+      payroll
+    );
 
     return payroll;
   };
