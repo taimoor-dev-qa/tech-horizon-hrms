@@ -1,103 +1,186 @@
-import Department from "../models/Department.js";
-import Designation from "../models/Designation.js";
-import Team from "../models/Team.js";
-import User from "../models/User.js";
-import Shift from "../models/Shift.js";
+import Department
+  from "../models/Department.js";
 
-export const validateOrganization = async ({
-  department,
-  designation,
-  team,
-}) => {
-  const departmentRecord =
-    await Department.findById(department);
+import Designation
+  from "../models/Designation.js";
 
-  if (!departmentRecord) {
-    throw new Error("Department not found");
-  }
+import Team
+  from "../models/Team.js";
 
-  const designationRecord =
-    await Designation.findById(designation);
+import User
+  from "../models/User.js";
 
-  if (!designationRecord) {
-    throw new Error("Designation not found");
-  }
+import Shift
+  from "../models/Shift.js";
 
-  if (
-    String(designationRecord.department) !==
-    String(department)
-  ) {
-    throw new Error(
-      "Designation does not belong to selected department"
-    );
-  }
+const withSession = (
+  query,
+  session
+) => {
+  return session
+    ? query.session(session)
+    : query;
+};
 
-  if (team) {
-    const teamRecord = await Team.findById(team);
+export const validateOrganization =
+  async (
+    {
+      department,
+      designation,
+      team,
+    },
+    session = null
+  ) => {
+    const departmentRecord =
+      await withSession(
+        Department.findById(
+          department
+        ),
+        session
+      );
 
-    if (!teamRecord) {
-      throw new Error("Team not found");
+    if (!departmentRecord) {
+      throw new Error(
+        "Department not found"
+      );
+    }
+
+    const designationRecord =
+      await withSession(
+        Designation.findById(
+          designation
+        ),
+        session
+      );
+
+    if (!designationRecord) {
+      throw new Error(
+        "Designation not found"
+      );
     }
 
     if (
-      String(teamRecord.department) !==
-      String(department)
+      String(
+        designationRecord.department
+      ) !== String(department)
     ) {
       throw new Error(
-        "Team does not belong to selected department"
+        "Designation does not belong to selected department"
       );
     }
-  }
-};
 
-export const validateManager = async (managerId) => {
-  if (!managerId) {
-    return;
-  }
+    if (team) {
+      const teamRecord =
+        await withSession(
+          Team.findById(team),
+          session
+        );
 
-  const manager = await User.findById(managerId);
+      if (!teamRecord) {
+        throw new Error(
+          "Team not found"
+        );
+      }
 
-  if (!manager) {
-    throw new Error("Manager not found");
-  }
+      if (
+        String(
+          teamRecord.department
+        ) !== String(department)
+      ) {
+        throw new Error(
+          "Team does not belong to selected department"
+        );
+      }
+    }
+  };
 
-  if (manager.role !== "manager") {
-    throw new Error(
-      "Selected user does not have manager role"
-    );
-  }
-};
+export const validateManager =
+  async (
+    managerId,
+    session = null
+  ) => {
+    if (!managerId) {
+      return;
+    }
 
-export const validateTeamLead = async (teamLeadId) => {
-  if (!teamLeadId) {
-    return;
-  }
+    const manager =
+      await withSession(
+        User.findById(managerId),
+        session
+      );
 
-  const teamLead = await User.findById(teamLeadId);
+    if (!manager) {
+      throw new Error(
+        "Manager not found"
+      );
+    }
 
-  if (!teamLead) {
-    throw new Error("Team lead not found");
-  }
+    if (
+      manager.role !== "manager"
+    ) {
+      throw new Error(
+        "Selected user does not have manager role"
+      );
+    }
+  };
 
-  if (teamLead.role !== "team_lead") {
-    throw new Error(
-      "Selected user does not have team lead role"
-    );
-  }
-};
+export const validateTeamLead =
+  async (
+    teamLeadId,
+    session = null
+  ) => {
+    if (!teamLeadId) {
+      return;
+    }
 
-export const validateShift = async (shiftId) => {
-  if (!shiftId) {
-    return;
-  }
+    const teamLead =
+      await withSession(
+        User.findById(
+          teamLeadId
+        ),
+        session
+      );
 
-  const shift = await Shift.findById(shiftId);
+    if (!teamLead) {
+      throw new Error(
+        "Team lead not found"
+      );
+    }
 
-  if (!shift) {
-    throw new Error("Shift not found");
-  }
+    if (
+      teamLead.role !==
+      "team_lead"
+    ) {
+      throw new Error(
+        "Selected user does not have team lead role"
+      );
+    }
+  };
 
-  if (!shift.isActive) {
-    throw new Error("Selected shift is inactive");
-  }
-};
+export const validateShift =
+  async (
+    shiftId,
+    session = null
+  ) => {
+    if (!shiftId) {
+      return;
+    }
+
+    const shift =
+      await withSession(
+        Shift.findById(shiftId),
+        session
+      );
+
+    if (!shift) {
+      throw new Error(
+        "Shift not found"
+      );
+    }
+
+    if (!shift.isActive) {
+      throw new Error(
+        "Selected shift is inactive"
+      );
+    }
+  };

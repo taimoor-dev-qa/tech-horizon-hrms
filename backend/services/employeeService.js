@@ -1,5 +1,8 @@
-import Employee from "../models/Employee.js";
-import User from "../models/User.js";
+import Employee
+  from "../models/Employee.js";
+
+import User
+  from "../models/User.js";
 
 import {
   validateManager,
@@ -14,79 +17,167 @@ const ALLOWED_ROLES = [
   "manager",
 ];
 
-const generateEmployeeId = async () => {
-  const count = await Employee.countDocuments();
+const generateEmployeeId =
+  async (
+    session = null
+  ) => {
+    let query =
+      Employee.countDocuments();
 
-  return `TH-${String(count + 1).padStart(
-    4,
-    "0"
-  )}`;
-};
+    if (session) {
+      query =
+        query.session(session);
+    }
 
-export const createEmployee = async (data) => {
-  const {
-    name,
-    email,
-    password,
-    role = "employee",
-    department,
-    designation,
-    team,
-    manager,
-    teamLead,
-  } = data;
+    const count =
+      await query;
 
-  if (!name || !email || !password) {
-    throw new Error(
-      "Name, email and password are required"
+    return `TH-${String(
+      count + 1
+    ).padStart(4, "0")}`;
+  };
+
+export const createEmployee =
+  async (
+    data,
+    session = null
+  ) => {
+    const {
+      name,
+      email,
+      password,
+      role = "employee",
+      department,
+      designation,
+      team,
+      manager,
+      teamLead,
+    } = data;
+
+    if (
+      !name ||
+      !email ||
+      !password
+    ) {
+      throw new Error(
+        "Name, email and password are required"
+      );
+    }
+
+    if (
+      !department ||
+      !designation
+    ) {
+      throw new Error(
+        "Department and designation are required"
+      );
+    }
+
+    if (
+      !ALLOWED_ROLES.includes(
+        role
+      )
+    ) {
+      throw new Error(
+        "Invalid employee role"
+      );
+    }
+
+    let existingUserQuery =
+      User.findOne({
+        email:
+          email.toLowerCase(),
+      });
+
+    if (session) {
+      existingUserQuery =
+        existingUserQuery.session(
+          session
+        );
+    }
+
+    const existingUser =
+      await existingUserQuery;
+
+    if (existingUser) {
+      throw new Error(
+        "Email already exists"
+      );
+    }
+
+    await validateOrganization(
+      {
+        department,
+        designation,
+        team,
+      },
+      session
     );
-  }
 
-  if (!department || !designation) {
-    throw new Error(
-      "Department and designation are required"
+    await validateManager(
+      manager,
+      session
     );
-  }
 
-  if (!ALLOWED_ROLES.includes(role)) {
-    throw new Error("Invalid employee role");
-  }
+    await validateTeamLead(
+      teamLead,
+      session
+    );
 
-  const existingUser = await User.findOne({
-    email: email.toLowerCase(),
-  });
+    await validateShift(
+      data.shift,
+      session
+    );
 
-  if (existingUser) {
-    throw new Error("Email already exists");
-  }
+    const employeeId =
+      await generateEmployeeId(
+        session
+      );
 
-  await validateOrganization({
-    department,
-    designation,
-    team,
-  });
+    const user =
+      new User({
+        name,
+        email,
+        password,
+        role,
+      });
 
-  await validateManager(manager);
-  await validateTeamLead(teamLead);
-  await validateShift(data.shift);
+    await user.save(
+      session
+        ? { session }
+        : {}
+    );
 
-  const employeeId = await generateEmployeeId();
+    try {
+      const employee =
+        new Employee({
+          ...data,
+          employeeId,
+          user: user._id,
+        });
 
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role,
-  });
+      await employee.save(
+        session
+          ? { session }
+          : {}
+      );
 
-  try {
-    return await Employee.create({
-      ...data,
-      employeeId,
-      user: user._id,
-    });
-  } catch (error) {
-    await User.findByIdAndDelete(user._id);
-    throw error;
-  }
-};
+      return employee;
+    } catch (error) {
+      /*
+       * Transaction ho to MongoDB
+       * khud rollback karega.
+       *
+       * Normal employee creation ho
+       * to old cleanup behaviour
+       * preserve karna hai.
+       */
+      if (!session) {
+        await User.findByIdAndDelete(
+          user._id
+        );
+      }
+
+      throw error;
+    }
+  };
