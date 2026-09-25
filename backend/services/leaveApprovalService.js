@@ -1,225 +1,368 @@
-import {
-    notifyEmployeeLeaveApproved,
-    notifyEmployeeLeaveRejected,
-    notifyEmployeeManagerApproved,
-    notifyLeaveApprover,
-} from "./leaveNotificationService.js";
-
 import LeaveRequest
-    from "../models/LeaveRequest.js";
+  from "../models/LeaveRequest.js";
 
 import {
-    LEAVE_STATUS,
+  LEAVE_STATUS,
 } from "../constants/leave.js";
 
 import ROLES
-    from "../constants/roles.js";
+  from "../constants/roles.js";
 
 import {
-    deductApprovedLeave,
+  deductApprovedLeave,
 } from "./leaveBalanceService.js";
 
 import {
-    markLeaveAttendance,
+  markLeaveAttendance,
 } from "./leaveAttendanceService.js";
 
 import {
-    getRuntimeCompanySettings,
+  getRuntimeCompanySettings,
 } from "./companySettingsRuntimeService.js";
 
+import {
+  notifyEmployeeLeaveApproved,
+  notifyEmployeeLeaveRejected,
+  notifyEmployeeManagerApproved,
+  notifyLeaveApprover,
+} from "./leaveNotificationService.js";
+
+import runTransaction
+  from "../utils/runTransaction.js";
+
 const validateDecision = (
-    decision
+  decision
 ) => {
-    if (
-        ![
-            "approve",
-            "reject",
-        ].includes(decision)
-    ) {
-        throw new Error(
-            "Decision must be approve or reject"
-        );
-    }
+  if (
+    ![
+      "approve",
+      "reject",
+    ].includes(decision)
+  ) {
+    throw new Error(
+      "Decision must be approve or reject"
+    );
+  }
 };
 
+const finalizeApprovedLeaveInSession =
+  async (
+    leave,
+    session
+  ) => {
+    await deductApprovedLeave(
+      leave,
+      session
+    );
+
+    await markLeaveAttendance(
+      leave,
+      session
+    );
+
+    leave.status =
+      LEAVE_STATUS.APPROVED;
+
+    await leave.save({
+      session,
+    });
+
+    return leave;
+  };
+
 export const finalizeApprovedLeave =
-    async (leave) => {
-        await deductApprovedLeave(
-            leave
-        );
+  async (leave) => {
+    const approvedLeave =
+      await runTransaction(
+        async (session) => {
+          leave.$session(
+            session
+          );
 
-        await markLeaveAttendance(
-            leave
-        );
+          return finalizeApprovedLeaveInSession(
+            leave,
+            session
+          );
+        }
+      );
 
-        leave.status =
-            LEAVE_STATUS.APPROVED;
+    // Notification DB transaction
+    // commit hone ke BAAD.
+    await notifyEmployeeLeaveApproved(
+      approvedLeave
+    );
 
-        await leave.save();
-
-        await notifyEmployeeLeaveApproved(
-            leave
-        );
-
-        return leave;
-    };
+    return approvedLeave;
+  };
 
 export const managerDecision =
-    async (
-        leaveId,
-        actor,
-        decision,
-        comment = ""
-    ) => {
-        validateDecision(decision);
+  async (
+    leaveId,
+    actor,
+    decision,
+    comment = ""
+  ) => {
+    validateDecision(
+      decision
+    );
 
-        const leave =
-            await LeaveRequest.findById(
+    const settings =
+      decision === "approve"
+        ? await getRuntimeCompanySettings()
+        : null;
+
+    let outcome = "";
+
+    const leave =
+      await runTransaction(
+        async (session) => {
+          const currentLeave =
+            await LeaveRequest
+              .findById(
                 leaveId
-            ).populate("employee");
+              )
+              .populate(
+                "employee"
+              )
+              .session(
+                session
+              );
 
-        if (!leave) {
+          if (!currentLeave) {
             throw new Error(
-                "Leave request not found"
+              "Leave request not found"
             );
-        }
+          }
 
-        if (
-            leave.status !==
-            LEAVE_STATUS.PENDING_MANAGER
-        ) {
+          if (
+            currentLeave.status !==
+            LEAVE_STATUS
+              .PENDING_MANAGER
+          ) {
             throw new Error(
-                "Leave is not pending manager approval"
+              "Leave is not pending manager approval"
             );
-        }
+          }
 
-        const isSuperAdmin =
+          const isSuperAdmin =
             actor.role ===
             ROLES.SUPER_ADMIN;
 
-        const isAssignedManager =
+          const isAssignedManager =
             String(
-                leave.employee.manager
-            ) === String(actor._id);
+              currentLeave
+                .employee
+                .manager
+            ) ===
+            String(actor._id);
 
-        if (
+          if (
             !isSuperAdmin &&
             !isAssignedManager
-        ) {
+          ) {
             throw new Error(
-                "You are not this employee's manager"
+              "You are not this employee's manager"
             );
-        }
+          }
 
-        leave.managerComment =
+          currentLeave
+            .managerComment =
             comment;
 
-        leave.managerReviewedBy =
+          currentLeave
+            .managerReviewedBy =
             actor._id;
 
-        leave.managerReviewedAt =
+          currentLeave
+            .managerReviewedAt =
             new Date();
 
-        if (
+          if (
             decision === "reject"
-        ) {
-            leave.status =
-                LEAVE_STATUS.REJECTED;
+          ) {
+            currentLeave.status =
+              LEAVE_STATUS
+                .REJECTED;
 
-            await leave.save();
+            await currentLeave.save({
+              session,
+            });
 
-            await notifyEmployeeLeaveRejected(
-                leave,
-                "manager"
-            );
+            outcome =
+              "manager_rejected";
 
-            return leave;
-        }
+            return currentLeave;
+          }
 
-        const settings =
-            await getRuntimeCompanySettings();
-
-        if (
+          if (
             settings.leave
-                .hrApprovalRequired
-        ) {
-            leave.status =
-                LEAVE_STATUS.PENDING_HR;
+              .hrApprovalRequired
+          ) {
+            currentLeave.status =
+              LEAVE_STATUS
+                .PENDING_HR;
 
-            await leave.save();
+            await currentLeave.save({
+              session,
+            });
 
-            await notifyEmployeeManagerApproved(
-                leave
-            );
+            outcome =
+              "pending_hr";
 
-            await notifyLeaveApprover(
-                leave,
-                leave.employee,
-                LEAVE_STATUS.PENDING_HR
-            );
+            return currentLeave;
+          }
 
-            return leave;
+          outcome =
+            "approved";
+
+          return finalizeApprovedLeaveInSession(
+            currentLeave,
+            session
+          );
         }
+      );
 
-        return finalizeApprovedLeave(
-            leave
-        );
-    };
+    /*
+     * Notifications transaction ke
+     * bahar hain.
+     *
+     * Notification fail ho to
+     * approved/rejected leave
+     * rollback nahi hogi.
+     */
+
+    if (
+      outcome ===
+      "manager_rejected"
+    ) {
+      await notifyEmployeeLeaveRejected(
+        leave,
+        "manager"
+      );
+    }
+
+    if (
+      outcome ===
+      "pending_hr"
+    ) {
+      await notifyEmployeeManagerApproved(
+        leave
+      );
+
+      await notifyLeaveApprover(
+        leave,
+        leave.employee,
+        LEAVE_STATUS.PENDING_HR
+      );
+    }
+
+    if (
+      outcome ===
+      "approved"
+    ) {
+      await notifyEmployeeLeaveApproved(
+        leave
+      );
+    }
+
+    return leave;
+  };
 
 export const hrDecision =
-    async (
-        leaveId,
-        actor,
-        decision,
-        comment = ""
-    ) => {
-        validateDecision(decision);
+  async (
+    leaveId,
+    actor,
+    decision,
+    comment = ""
+  ) => {
+    validateDecision(
+      decision
+    );
 
-        const leave =
-            await LeaveRequest.findById(
+    let outcome = "";
+
+    const leave =
+      await runTransaction(
+        async (session) => {
+          const currentLeave =
+            await LeaveRequest
+              .findById(
                 leaveId
-            );
+              )
+              .session(
+                session
+              );
 
-        if (!leave) {
+          if (!currentLeave) {
             throw new Error(
-                "Leave request not found"
+              "Leave request not found"
             );
-        }
+          }
 
-        if (
-            leave.status !==
-            LEAVE_STATUS.PENDING_HR
-        ) {
+          if (
+            currentLeave.status !==
+            LEAVE_STATUS
+              .PENDING_HR
+          ) {
             throw new Error(
-                "Leave is not pending HR approval"
+              "Leave is not pending HR approval"
             );
-        }
+          }
 
-        leave.hrComment = comment;
+          currentLeave.hrComment =
+            comment;
 
-        leave.hrReviewedBy =
+          currentLeave.hrReviewedBy =
             actor._id;
 
-        leave.hrReviewedAt =
+          currentLeave.hrReviewedAt =
             new Date();
 
-        if (
+          if (
             decision === "reject"
-        ) {
-            leave.status =
-                LEAVE_STATUS.REJECTED;
+          ) {
+            currentLeave.status =
+              LEAVE_STATUS
+                .REJECTED;
 
-            await leave.save();
+            await currentLeave.save({
+              session,
+            });
 
-            await notifyEmployeeLeaveRejected(
-                leave,
-                "HR"
-            );
+            outcome =
+              "hr_rejected";
 
-            return leave;
+            return currentLeave;
+          }
+
+          outcome =
+            "approved";
+
+          return finalizeApprovedLeaveInSession(
+            currentLeave,
+            session
+          );
         }
+      );
 
-        return finalizeApprovedLeave(
-            leave
-        );
-    };
+    if (
+      outcome ===
+      "hr_rejected"
+    ) {
+      await notifyEmployeeLeaveRejected(
+        leave,
+        "HR"
+      );
+    }
+
+    if (
+      outcome ===
+      "approved"
+    ) {
+      await notifyEmployeeLeaveApproved(
+        leave
+      );
+    }
+
+    return leave;
+  };

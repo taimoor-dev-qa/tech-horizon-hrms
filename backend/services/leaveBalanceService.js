@@ -31,19 +31,33 @@ export const getOrCreateBalance =
   async (
     employeeId,
     leaveType,
-    year
+    year,
+    session = null
   ) => {
-    let balance =
-      await LeaveBalance.findOne({
-        employee: employeeId,
+    const options = {
+      new: true,
+      upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+    };
+
+    if (session) {
+      options.session = session;
+    }
+
+    return LeaveBalance.findOneAndUpdate(
+      {
+        employee:
+          employeeId,
+
         leaveType:
           leaveType._id,
-        year,
-      });
 
-    if (!balance) {
-      balance =
-        await LeaveBalance.create({
+        year,
+      },
+
+      {
+        $setOnInsert: {
           employee:
             employeeId,
 
@@ -56,10 +70,11 @@ export const getOrCreateBalance =
             leaveType.annualQuota,
 
           usedDays: 0,
-        });
-    }
+        },
+      },
 
-    return balance;
+      options
+    );
   };
 
 export const validateRequestBalance =
@@ -158,11 +173,28 @@ export const validateRequestBalance =
   };
 
 export const deductApprovedLeave =
-  async (leave) => {
-    const leaveType =
-      await LeaveType.findById(
-        leave.leaveType
+  async (
+    leave,
+    session = null
+  ) => {
+    const leaveTypeId =
+      leave.leaveType?._id ||
+      leave.leaveType;
+
+    let leaveTypeQuery =
+      LeaveType.findById(
+        leaveTypeId
       );
+
+    if (session) {
+      leaveTypeQuery =
+        leaveTypeQuery.session(
+          session
+        );
+    }
+
+    const leaveType =
+      await leaveTypeQuery;
 
     if (
       !leaveType ||
@@ -181,11 +213,16 @@ export const deductApprovedLeave =
           .leaveYearStartMonth
       );
 
+    const employeeId =
+      leave.employee?._id ||
+      leave.employee;
+
     const balance =
       await getOrCreateBalance(
-        leave.employee,
+        employeeId,
         leaveType,
-        year
+        year,
+        session
       );
 
     const remaining =
@@ -204,7 +241,11 @@ export const deductApprovedLeave =
     balance.usedDays +=
       leave.totalDays;
 
-    await balance.save();
+    await balance.save(
+      session
+        ? { session }
+        : {}
+    );
   };
 
 export const getMyBalances =

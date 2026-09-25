@@ -116,6 +116,7 @@ export const updateProject = async (
   res
 ) => {
   try {
+    
     const project =
   await updateProjectService(
     req.params.id,
