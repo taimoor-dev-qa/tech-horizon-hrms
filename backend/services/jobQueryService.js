@@ -6,6 +6,11 @@ import {
   validateJobReadAccess,
 } from "./recruitmentAccessService.js";
 
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
+
 const populateJob = (
   query
 ) => {
@@ -31,12 +36,15 @@ export const getJobs =
       status,
       department,
       search,
+      page,
+      limit,
     } = {}
   ) => {
     const filter = {};
 
     if (status) {
-      filter.status = status;
+      filter.status =
+        status;
     }
 
     if (department) {
@@ -52,6 +60,7 @@ export const getJobs =
             $options: "i",
           },
         },
+
         {
           code: {
             $regex: search,
@@ -61,17 +70,55 @@ export const getJobs =
       ];
     }
 
+    /*
+     * Step 28C security.
+     * REMOVE NAHI KARNI.
+     */
     applyJobReadAccess(
       actor,
       filter,
       status
     );
 
-    return populateJob(
-      Job.find(filter).sort({
-        createdAt: -1,
-      })
-    );
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
+
+    const [
+      jobs,
+      total,
+    ] =
+      await Promise.all([
+        populateJob(
+          Job.find(filter)
+            .sort({
+              createdAt: -1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        Job.countDocuments(
+          filter
+        ),
+      ]);
+
+    return {
+      jobs,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
 
 export const getJobById =

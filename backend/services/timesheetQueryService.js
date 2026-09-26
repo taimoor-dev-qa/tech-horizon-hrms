@@ -1,10 +1,18 @@
-import Timesheet from "../models/Timesheet.js";
+import Timesheet
+  from "../models/Timesheet.js";
 
 import {
   getEmployeeByUser,
 } from "./timesheetValidationService.js";
 
-const populateTimesheet = (query) => {
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
+
+const populateTimesheet = (
+  query
+) => {
   return query
     .populate(
       "project",
@@ -12,7 +20,10 @@ const populateTimesheet = (query) => {
     )
     .populate({
       path: "employee",
-      select: "employeeId user",
+
+      select:
+        "employeeId user",
+
       populate: {
         path: "user",
         select: "name email",
@@ -24,55 +35,110 @@ const populateTimesheet = (query) => {
     );
 };
 
-export const getMyTimesheets = async (
-  userId,
-  {
-    project,
-    status,
-    startDate,
-    endDate,
-  } = {}
-) => {
-  const employee = await getEmployeeByUser(
-    userId
-  );
+export const getMyTimesheets =
+  async (
+    userId,
+    {
+      project,
+      status,
+      startDate,
+      endDate,
+      page,
+      limit,
+    } = {}
+  ) => {
+    const employee =
+      await getEmployeeByUser(
+        userId
+      );
 
-  const filter = {
-    employee: employee._id,
+    const filter = {
+      employee:
+        employee._id,
+    };
+
+    if (project) {
+      filter.project =
+        project;
+    }
+
+    if (status) {
+      filter.status =
+        status;
+    }
+
+    if (
+      startDate ||
+      endDate
+    ) {
+      filter.workDate = {};
+
+      if (startDate) {
+        filter
+          .workDate
+          .$gte =
+          startDate;
+      }
+
+      if (endDate) {
+        filter
+          .workDate
+          .$lte =
+          endDate;
+      }
+    }
+
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
+
+    const [
+      timesheets,
+      total,
+    ] =
+      await Promise.all([
+        populateTimesheet(
+          Timesheet
+            .find(filter)
+            .sort({
+              workDate: -1,
+              createdAt: -1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        Timesheet
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      timesheets,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
 
-  if (project) {
-    filter.project = project;
-  }
-
-  if (status) {
-    filter.status = status;
-  }
-
-  if (startDate || endDate) {
-    filter.workDate = {};
-
-    if (startDate) {
-      filter.workDate.$gte = startDate;
-    }
-
-    if (endDate) {
-      filter.workDate.$lte = endDate;
-    }
-  }
-
-  return populateTimesheet(
-    Timesheet.find(filter).sort({
-      workDate: -1,
-      createdAt: -1,
-    })
-  );
-};
-
-export const getTimesheetById = async (
-  id
-) => {
-  return populateTimesheet(
-    Timesheet.findById(id)
-  );
-};
+export const getTimesheetById =
+  async (
+    id
+  ) => {
+    return populateTimesheet(
+      Timesheet.findById(
+        id
+      )
+    );
+  };

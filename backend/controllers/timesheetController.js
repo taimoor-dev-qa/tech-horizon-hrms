@@ -32,28 +32,40 @@ export const createTimesheet = async (
   }
 };
 
-export const getMyTimesheets = async (
-  req,
-  res
-) => {
-  try {
-    const timesheets = await getMyService(
-      req.user._id,
-      req.query
-    );
+export const getMyTimesheets =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const result =
+        await getMyService(
+          req.user._id,
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: timesheets.length,
-      timesheets,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
+
+        count:
+          result
+            .timesheets
+            .length,
+
+        pagination:
+          result.pagination,
+
+        timesheets:
+          result.timesheets,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
 
 export const updateTimesheet = async (
   req,

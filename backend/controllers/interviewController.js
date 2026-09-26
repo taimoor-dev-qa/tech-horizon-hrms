@@ -33,58 +33,85 @@ export const createInterview = async (
   }
 };
 
-export const getInterviews = async (
-  req,
-  res
-) => {
-  try {
-    const interviews =
-      await getInterviewsService(req.query);
+export const getInterviews =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const result =
+        await getInterviewsService(
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: interviews.length,
-      interviews,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
 
-export const getMyInterviews = async (
-  req,
-  res
-) => {
-  try {
-    const interviews = await getMyService(
-      req.user._id
-    );
+        count:
+          result
+            .interviews
+            .length,
 
-    res.status(200).json({
-      success: true,
-      count: interviews.length,
-      interviews,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+        pagination:
+          result.pagination,
+
+        interviews:
+          result.interviews,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
+
+export const getMyInterviews =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const result =
+        await getMyService(
+          req.user._id,
+          req.query
+        );
+
+      res.status(200).json({
+        success: true,
+
+        count:
+          result
+            .interviews
+            .length,
+
+        pagination:
+          result.pagination,
+
+        interviews:
+          result.interviews,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
 
 export const getInterviewById = async (
   req,
   res
 ) => {
   try {
-    const interview = await getByIdService(
-      req.user,
-      req.params.id
-    );
+    const interview =
+      await getByIdService(
+        req.user,
+        req.params.id
+      );
 
     if (!interview) {
       return res.status(404).json({

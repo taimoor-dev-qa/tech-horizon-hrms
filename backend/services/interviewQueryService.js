@@ -5,6 +5,11 @@ import {
   validateInterviewReadAccess,
 } from "./recruitmentAccessService.js";
 
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
+
 const populateInterview = (
   query
 ) => {
@@ -35,6 +40,8 @@ export const getInterviews =
     status,
     startDate,
     endDate,
+    page,
+    limit,
   } = {}) => {
     const filter = {};
 
@@ -62,36 +69,121 @@ export const getInterviews =
       filter.scheduledAt = {};
 
       if (startDate) {
-        filter.scheduledAt.$gte =
+        filter
+          .scheduledAt
+          .$gte =
           new Date(
             `${startDate}T00:00:00Z`
           );
       }
 
       if (endDate) {
-        filter.scheduledAt.$lte =
+        filter
+          .scheduledAt
+          .$lte =
           new Date(
             `${endDate}T23:59:59Z`
           );
       }
     }
 
-    return populateInterview(
-      Interview.find(filter).sort({
-        scheduledAt: 1,
-      })
-    );
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
+
+    const [
+      interviews,
+      total,
+    ] =
+      await Promise.all([
+        populateInterview(
+          Interview
+            .find(filter)
+            .sort({
+              scheduledAt: 1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        Interview
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      interviews,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
 
 export const getMyInterviews =
-  async (userId) => {
-    return populateInterview(
-      Interview.find({
-        interviewer: userId,
-      }).sort({
-        scheduledAt: 1,
-      })
-    );
+  async (
+    userId,
+    {
+      page,
+      limit,
+    } = {}
+  ) => {
+    const filter = {
+      interviewer:
+        userId,
+    };
+
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
+
+    const [
+      interviews,
+      total,
+    ] =
+      await Promise.all([
+        populateInterview(
+          Interview
+            .find(filter)
+            .sort({
+              scheduledAt: 1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        Interview
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      interviews,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
 
 export const getInterviewById =
@@ -114,6 +206,8 @@ export const getInterviewById =
     );
 
     return populateInterview(
-      Interview.findById(id)
+      Interview.findById(
+        id
+      )
     );
   };

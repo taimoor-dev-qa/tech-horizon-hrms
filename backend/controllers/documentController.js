@@ -65,28 +65,40 @@ export const getDocuments =
     }
   };
 
-export const getMyDocuments = async (
-  req,
-  res
-) => {
-  try {
-    const documents =
-      await getMyService(
-        req.user._id
-      );
+export const getMyDocuments =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const result =
+        await getMyService(
+          req.user._id,
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: documents.length,
-      documents,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
+
+        count:
+          result
+            .documents
+            .length,
+
+        pagination:
+          result.pagination,
+
+        documents:
+          result.documents,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
 
 export const getDocumentById = async (
   req,

@@ -103,7 +103,8 @@ export const getDocuments =
 
 export const getMyDocuments =
   async (
-    userId
+    userId,
+    query = {}
   ) => {
     const employee =
       await Employee.findOne({
@@ -124,7 +125,7 @@ export const getMyDocuments =
         settings.timezone
       );
 
-    return EmployeeDocument.find({
+    const filter = {
       employee:
         employee._id,
 
@@ -136,7 +137,8 @@ export const getMyDocuments =
 
       $or: [
         {
-          expiresAt: null,
+          expiresAt:
+            null,
         },
 
         {
@@ -145,9 +147,47 @@ export const getMyDocuments =
           },
         },
       ],
-    }).sort({
-      createdAt: -1,
-    });
+    };
+
+    const pagination =
+      getPagination(
+        query,
+        20
+      );
+
+    const [
+      documents,
+      total,
+    ] =
+      await Promise.all([
+        EmployeeDocument
+          .find(filter)
+          .sort({
+            createdAt: -1,
+          })
+          .skip(
+            pagination.skip
+          )
+          .limit(
+            pagination.limit
+          ),
+
+        EmployeeDocument
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      documents,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
 
 export const getDocumentById = async (

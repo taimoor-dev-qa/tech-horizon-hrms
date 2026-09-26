@@ -32,29 +32,40 @@ export const createJob = async (
   }
 };
 
-export const getJobs = async (
-  req,
-  res
-) => {
-  try {
-    const jobs =
-      await getJobsService(
-        req.user,
-        req.query
-      );
+export const getJobs =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const result =
+        await getJobsService(
+          req.user,
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: jobs.length,
-      jobs,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
+
+        count:
+          result.jobs.length,
+
+        pagination:
+          result.pagination,
+
+        jobs:
+          result.jobs,
+      });
+    } catch (error) {
+      res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
 
 export const getJobById = async (
   req,
