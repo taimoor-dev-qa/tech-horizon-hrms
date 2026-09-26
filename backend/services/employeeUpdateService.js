@@ -1,121 +1,223 @@
-import Employee from "../models/Employee.js";
-import User from "../models/User.js";
+import Employee
+  from "../models/Employee.js";
+
+import User
+  from "../models/User.js";
 
 import {
-    validateManager,
-    validateShift,
-    validateOrganization,
-    validateTeamLead,
+  validateManager,
+  validateOrganization,
+  validateShift,
+  validateTeamLead,
 } from "./employeeValidationService.js";
 
 import {
-    getEmployeeById,
+  getEmployeeById,
 } from "./employeeQueryService.js";
 
+import runTransaction
+  from "../utils/runTransaction.js";
+
 const ALLOWED_ROLES = [
-    "employee",
-    "team_lead",
-    "manager",
+  "employee",
+  "team_lead",
+  "manager",
 ];
 
 const EMPLOYEE_FIELDS = [
-    "phone",
-    "cnic",
-    "dateOfBirth",
-    "gender",
-    "department",
-    "shift",
-    "designation",
-    "team",
-    "manager",
-    "teamLead",
-    "joiningDate",
-    "employmentType",
-    "workLocation",
+  "phone",
+  "cnic",
+  "dateOfBirth",
+  "gender",
+  "department",
+  "shift",
+  "designation",
+  "team",
+  "manager",
+  "teamLead",
+  "joiningDate",
+  "employmentType",
+  "workLocation",
 ];
 
-export const updateEmployee = async (
+export const updateEmployee =
+  async (
     id,
-    data
-) => {
-    const employee = await Employee.findById(id);
+    data,
+    actor
+  ) => {
+    const updated =
+      await runTransaction(
+        async (session) => {
+          const employee =
+            await Employee
+              .findById(id)
+              .session(
+                session
+              );
 
-    if (!employee) {
-        return null;
-    }
+          if (!employee) {
+            return null;
+          }
 
-    const department =
-        data.department || employee.department;
+          const department =
+            data.department ||
+            employee.department;
 
-    const designation =
-        data.designation || employee.designation;
+          const designation =
+            data.designation ||
+            employee.designation;
 
-    const team = Object.hasOwn(data, "team")
-        ? data.team
-        : employee.team;
+          const team =
+            Object.hasOwn(
+              data,
+              "team"
+            )
+              ? data.team
+              : employee.team;
 
-    await validateOrganization({
-        department,
-        designation,
-        team,
-    });
+          await validateOrganization(
+            {
+              department,
+              designation,
+              team,
+            },
+            session
+          );
 
-    if (Object.hasOwn(data, "shift")) {
-        await validateShift(data.shift);
-    }
+          if (
+            Object.hasOwn(
+              data,
+              "shift"
+            )
+          ) {
+            await validateShift(
+              data.shift,
+              session
+            );
+          }
 
-    if (Object.hasOwn(data, "manager")) {
-        await validateManager(data.manager);
-    }
+          if (
+            Object.hasOwn(
+              data,
+              "manager"
+            )
+          ) {
+            await validateManager(
+              data.manager,
+              session
+            );
+          }
 
-    if (Object.hasOwn(data, "teamLead")) {
-        await validateTeamLead(data.teamLead);
-    }
+          if (
+            Object.hasOwn(
+              data,
+              "teamLead"
+            )
+          ) {
+            await validateTeamLead(
+              data.teamLead,
+              session
+            );
+          }
 
-    const userUpdates = {};
+          const userUpdates = {};
 
-    if (data.name) {
-        userUpdates.name = data.name;
-    }
+          if (data.name) {
+            userUpdates.name =
+              data.name;
+          }
 
-    if (data.email) {
-        const email = data.email.toLowerCase();
+          if (data.email) {
+            const email =
+              data.email
+                .toLowerCase();
 
-        const existingUser = await User.findOne({
-            email,
-            _id: { $ne: employee.user },
-        });
+            const existingUser =
+              await User
+                .findOne({
+                  email,
 
-        if (existingUser) {
-            throw new Error("Email already exists");
+                  _id: {
+                    $ne:
+                      employee.user,
+                  },
+                })
+                .session(
+                  session
+                );
+
+            if (existingUser) {
+              throw new Error(
+                "Email already exists"
+              );
+            }
+
+            userUpdates.email =
+              email;
+          }
+
+          if (data.role) {
+            if (
+              !ALLOWED_ROLES.includes(
+                data.role
+              )
+            ) {
+              throw new Error(
+                "Invalid employee role"
+              );
+            }
+
+            userUpdates.role =
+              data.role;
+          }
+
+          if (
+            Object.keys(
+              userUpdates
+            ).length
+          ) {
+            await User
+              .findByIdAndUpdate(
+                employee.user,
+
+                userUpdates,
+
+                {
+                  runValidators: true,
+                  session,
+                }
+              );
+          }
+
+          EMPLOYEE_FIELDS.forEach(
+            (field) => {
+              if (
+                Object.hasOwn(
+                  data,
+                  field
+                )
+              ) {
+                employee[field] =
+                  data[field];
+              }
+            }
+          );
+
+          await employee.save({
+            session,
+          });
+
+          return employee._id;
         }
+      );
 
-        userUpdates.email = email;
+    if (!updated) {
+      return null;
     }
 
-    if (data.role) {
-        if (!ALLOWED_ROLES.includes(data.role)) {
-            throw new Error("Invalid employee role");
-        }
-
-        userUpdates.role = data.role;
-    }
-
-    if (Object.keys(userUpdates).length) {
-        await User.findByIdAndUpdate(
-            employee.user,
-            userUpdates,
-            { runValidators: true }
-        );
-    }
-
-    EMPLOYEE_FIELDS.forEach((field) => {
-        if (Object.hasOwn(data, field)) {
-            employee[field] = data[field];
-        }
-    });
-
-    await employee.save();
-
-    return getEmployeeById(id);
-};
+    return getEmployeeById(
+      actor,
+      updated
+    );
+  };

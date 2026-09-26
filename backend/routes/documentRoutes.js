@@ -13,6 +13,9 @@ import {
   downloadDocument,
 } from "../controllers/documentActionController.js";
 
+import validateDocumentFile
+  from "../middleware/validateDocumentFileMiddleware.js";
+
 import protect
   from "../middleware/authMiddleware.js";
 
@@ -61,7 +64,10 @@ router.post(
   "/",
   protect,
   hrAccess,
-  documentUpload.single("file"),
+  documentUpload.single(
+    "file"
+  ),
+  validateDocumentFile,
   validateRequest(
     documentUploadSchema
   ),

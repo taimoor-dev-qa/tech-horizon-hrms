@@ -7,6 +7,14 @@ import {
   DOCUMENT_VISIBILITY,
 } from "../constants/document.js";
 
+import {
+  getRuntimeCompanySettings,
+} from "./companySettingsRuntimeService.js";
+
+import {
+  getCurrentDate,
+} from "./attendanceTimeService.js";
+
 const populateDocument = (query) => {
   return query
     .populate({
@@ -47,28 +55,54 @@ export const getDocuments = async ({
   );
 };
 
-export const getMyDocuments = async (
-  userId
-) => {
-  const employee = await Employee.findOne({
-    user: userId,
-  });
+export const getMyDocuments =
+  async (
+    userId
+  ) => {
+    const employee =
+      await Employee.findOne({
+        user: userId,
+      });
 
-  if (!employee) {
-    throw new Error(
-      "Employee profile not found"
-    );
-  }
+    if (!employee) {
+      throw new Error(
+        "Employee profile not found"
+      );
+    }
 
-  return EmployeeDocument.find({
-    employee: employee._id,
-    isActive: true,
-    visibility:
-      DOCUMENT_VISIBILITY.EMPLOYEE_VISIBLE,
-  }).sort({
-    createdAt: -1,
-  });
-};
+    const settings =
+      await getRuntimeCompanySettings();
+
+    const today =
+      getCurrentDate(
+        settings.timezone
+      );
+
+    return EmployeeDocument.find({
+      employee:
+        employee._id,
+
+      isActive: true,
+
+      visibility:
+        DOCUMENT_VISIBILITY
+          .EMPLOYEE_VISIBLE,
+
+      $or: [
+        {
+          expiresAt: null,
+        },
+
+        {
+          expiresAt: {
+            $gte: today,
+          },
+        },
+      ],
+    }).sort({
+      createdAt: -1,
+    });
+  };
 
 export const getDocumentById = async (
   id

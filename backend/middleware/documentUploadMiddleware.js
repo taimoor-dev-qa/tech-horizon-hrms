@@ -1,81 +1,43 @@
-import fs from "fs";
 import multer from "multer";
-import path from "path";
-import crypto from "crypto";
 
-const uploadDirectory = path.resolve(
-  "uploads",
-  "employee-documents"
-);
+import {
+  validateDocumentMetadata,
+} from "../services/documentFileSecurityService.js";
 
-fs.mkdirSync(uploadDirectory, {
-  recursive: true,
-});
-
-const storage = multer.diskStorage({
-  destination: (
-    req,
-    file,
-    callback
-  ) => {
-    callback(null, uploadDirectory);
-  },
-
-  filename: (
-    req,
-    file,
-    callback
-  ) => {
-    const extension = path.extname(
-      file.originalname
-    );
-
-    const safeName = crypto
-      .randomBytes(16)
-      .toString("hex");
-
-    callback(
-      null,
-      `${safeName}${extension.toLowerCase()}`
-    );
-  },
-});
-
-const allowedMimeTypes = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
+const storage =
+  multer.memoryStorage();
 
 const fileFilter = (
   req,
   file,
   callback
 ) => {
-  if (
-    !allowedMimeTypes.includes(
-      file.mimetype
-    )
-  ) {
-    return callback(
-      new Error(
-        "Only PDF, JPG, PNG, DOC and DOCX files are allowed"
-      )
+  try {
+    validateDocumentMetadata(
+      file
     );
-  }
 
-  callback(null, true);
+    callback(
+      null,
+      true
+    );
+  } catch (error) {
+    callback(error);
+  }
 };
 
-const documentUpload = multer({
-  storage,
-  fileFilter,
+const documentUpload =
+  multer({
+    storage,
 
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-});
+    fileFilter,
+
+    limits: {
+      fileSize:
+        5 * 1024 * 1024,
+
+      files: 1,
+    },
+  });
 
 export default documentUpload;

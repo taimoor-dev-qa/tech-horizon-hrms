@@ -11,36 +11,23 @@ import {
   validateTeamLead,
 } from "./employeeValidationService.js";
 
+import {
+  getNextEmployeeId,
+} from "./sequenceService.js";
+
+import runTransaction
+  from "../utils/runTransaction.js";
+
 const ALLOWED_ROLES = [
   "employee",
   "team_lead",
   "manager",
 ];
 
-const generateEmployeeId =
-  async (
-    session = null
-  ) => {
-    let query =
-      Employee.countDocuments();
-
-    if (session) {
-      query =
-        query.session(session);
-    }
-
-    const count =
-      await query;
-
-    return `TH-${String(
-      count + 1
-    ).padStart(4, "0")}`;
-  };
-
-export const createEmployee =
+const createEmployeeInSession =
   async (
     data,
-    session = null
+    session
   ) => {
     const {
       name,
@@ -83,21 +70,11 @@ export const createEmployee =
       );
     }
 
-    let existingUserQuery =
-      User.findOne({
+    const existingUser =
+      await User.findOne({
         email:
           email.toLowerCase(),
-      });
-
-    if (session) {
-      existingUserQuery =
-        existingUserQuery.session(
-          session
-        );
-    }
-
-    const existingUser =
-      await existingUserQuery;
+      }).session(session);
 
     if (existingUser) {
       throw new Error(
@@ -130,7 +107,7 @@ export const createEmployee =
     );
 
     const employeeId =
-      await generateEmployeeId(
+      await getNextEmployeeId(
         session
       );
 
@@ -142,42 +119,55 @@ export const createEmployee =
         role,
       });
 
-    await user.save(
-      session
-        ? { session }
-        : {}
-    );
+    await user.save({
+      session,
+    });
 
-    try {
-      const employee =
-        new Employee({
-          ...data,
-          employeeId,
-          user: user._id,
-        });
+    const employee =
+      new Employee({
+        ...data,
+        employeeId,
+        user: user._id,
+      });
 
-      await employee.save(
+    await employee.save({
+      session,
+    });
+
+    return employee;
+  };
+
+export const createEmployee =
+  async (
+    data,
+    session = null
+  ) => {
+    /*
+     * Candidate Hire already
+     * transaction chala raha hota hai.
+     *
+     * Isliye supplied session ko
+     * directly reuse karna hai.
+     */
+    if (session) {
+      return createEmployeeInSession(
+        data,
         session
-          ? { session }
-          : {}
       );
+    }
 
-      return employee;
-    } catch (error) {
-      /*
-       * Transaction ho to MongoDB
-       * khud rollback karega.
-       *
-       * Normal employee creation ho
-       * to old cleanup behaviour
-       * preserve karna hai.
-       */
-      if (!session) {
-        await User.findByIdAndDelete(
-          user._id
+    /*
+     * Normal HR employee creation bhi
+     * ab transaction-safe hai.
+     */
+    return runTransaction(
+      async (
+        transactionSession
+      ) => {
+        return createEmployeeInSession(
+          data,
+          transactionSession
         );
       }
-
-      throw error;
-    }
+    );
   };

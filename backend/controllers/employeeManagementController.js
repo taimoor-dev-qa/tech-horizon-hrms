@@ -23,7 +23,8 @@ export const updateEmployee = async (
     const employee =
       await updateEmployeeService(
         req.params.id,
-        req.body
+        req.body,
+        req.user
       );
 
     if (!employee) {
@@ -48,9 +49,11 @@ export const deactivateEmployee = async (
   res
 ) => {
   try {
-    const employee = await deactivateService(
-      req.params.id
-    );
+    const employee =
+      await deactivateService(
+        req.params.id,
+        req.user
+      );
 
     if (!employee) {
       return sendNotFound(res);
@@ -74,9 +77,11 @@ export const reactivateEmployee = async (
   res
 ) => {
   try {
-    const employee = await reactivateService(
-      req.params.id
-    );
+    const employee =
+      await reactivateService(
+        req.params.id,
+        req.user
+      );
 
     if (!employee) {
       return sendNotFound(res);
@@ -102,7 +107,8 @@ export const changeEmployeeStatus = async (
   try {
     const employee = await setEmployeeStatus(
       req.params.id,
-      req.body.status
+      req.body.status,
+      req.user
     );
 
     if (!employee) {

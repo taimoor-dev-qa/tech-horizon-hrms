@@ -1,37 +1,37 @@
-import path from "path";
 
 import {
   deleteDocument as deleteService,
   getDownloadableDocument,
 } from "../services/documentFileService.js";
 
-export const downloadDocument = async (
-  req,
-  res
-) => {
-  try {
-    const document =
-      await getDownloadableDocument(
-        req.params.id,
-        req.user
-      );
+export const downloadDocument =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const {
+        document,
+        absolutePath,
+      } =
+        await getDownloadableDocument(
+          req.params.id,
+          req.user
+        );
 
-    const absolutePath =
-      path.resolve(
-        document.filePath
+      return res.download(
+        absolutePath,
+        document.originalName
       );
-
-    res.download(
-      absolutePath,
-      document.originalName
-    );
-  } catch (error) {
-    res.status(403).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+    } catch (error) {
+      return res.status(
+        error.statusCode || 400
+      ).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  };
 
 export const deleteDocument = async (
   req,

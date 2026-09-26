@@ -40,7 +40,9 @@ export const documentUploadSchema =
       .optional(),
 
     expiresAt:
-      dateString.optional(),
+      dateString
+        .optional()
+        .nullable(),
   });
 
 export const updateDocumentSchema =

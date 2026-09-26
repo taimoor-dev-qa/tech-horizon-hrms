@@ -1,5 +1,44 @@
 import { z } from "zod";
 
+const DATE_PATTERN =
+  /^\d{4}-\d{2}-\d{2}$/;
+
+const isRealDate = (
+  value
+) => {
+  if (
+    !DATE_PATTERN.test(value)
+  ) {
+    return false;
+  }
+
+  const [
+    year,
+    month,
+    day,
+  ] = value
+    .split("-")
+    .map(Number);
+
+  const date =
+    new Date(
+      Date.UTC(
+        year,
+        month - 1,
+        day
+      )
+    );
+
+  return (
+    date.getUTCFullYear() ===
+      year &&
+    date.getUTCMonth() ===
+      month - 1 &&
+    date.getUTCDate() ===
+      day
+  );
+};
+
 export const objectId = z
   .string()
   .regex(
@@ -8,13 +47,22 @@ export const objectId = z
   );
 
 export const optionalObjectId =
-  objectId.optional().nullable();
+  objectId
+    .optional()
+    .nullable();
 
 export const dateString = z
   .string()
   .regex(
-    /^\d{4}-\d{2}-\d{2}$/,
+    DATE_PATTERN,
     "Date must use YYYY-MM-DD format"
+  )
+  .refine(
+    isRealDate,
+    {
+      message:
+        "Invalid calendar date",
+    }
   );
 
 export const monthString = z
