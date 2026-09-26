@@ -1,19 +1,34 @@
-import Employee from "../models/Employee.js";
-import User from "../models/User.js";
+import Employee
+  from "../models/Employee.js";
+
+import User
+  from "../models/User.js";
 
 import {
   ANNOUNCEMENT_AUDIENCE,
 } from "../constants/announcement.js";
 
 export const getAnnouncementRecipients =
-  async (announcement) => {
+  async (
+    announcement,
+    session = null
+  ) => {
     if (
       announcement.audience ===
       ANNOUNCEMENT_AUDIENCE.ALL
     ) {
-      const users = await User.find({
-        isActive: true,
-      }).select("_id");
+      let query =
+        User.find({
+          isActive: true,
+        }).select("_id");
+
+      if (session) {
+        query =
+          query.session(session);
+      }
+
+      const users =
+        await query;
 
       return users.map(
         (user) => user._id
@@ -24,12 +39,23 @@ export const getAnnouncementRecipients =
       announcement.audience ===
       ANNOUNCEMENT_AUDIENCE.ROLES
     ) {
-      const users = await User.find({
-        role: {
-          $in: announcement.roles,
-        },
-        isActive: true,
-      }).select("_id");
+      let query =
+        User.find({
+          role: {
+            $in:
+              announcement.roles,
+          },
+
+          isActive: true,
+        }).select("_id");
+
+      if (session) {
+        query =
+          query.session(session);
+      }
+
+      const users =
+        await query;
 
       return users.map(
         (user) => user._id
@@ -54,17 +80,38 @@ export const getAnnouncementRecipients =
         announcement.team;
     }
 
-    const employees = await Employee.find(
-      employeeFilter
-    )
-      .populate({
-        path: "user",
-        match: { isActive: true },
-        select: "_id",
-      });
+    let query =
+      Employee.find(
+        employeeFilter
+      )
+        .populate({
+          path: "user",
+
+          match: {
+            isActive: true,
+          },
+
+          select: "_id",
+
+          options:
+            session
+              ? { session }
+              : {},
+        });
+
+    if (session) {
+      query =
+        query.session(session);
+    }
+
+    const employees =
+      await query;
 
     return employees
-      .filter((employee) => employee.user)
+      .filter(
+        (employee) =>
+          employee.user
+      )
       .map(
         (employee) =>
           employee.user._id

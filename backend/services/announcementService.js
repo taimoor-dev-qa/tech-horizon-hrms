@@ -6,30 +6,58 @@ import {
 } from "../constants/announcement.js";
 
 import {
+  NOTIFICATION_TYPE,
+} from "../constants/notification.js";
+
+import {
   validateAnnouncementTarget,
   validateExpiry,
 } from "./announcementValidationService.js";
 
+import {
+  getAnnouncementRecipients,
+} from "./announcementTargetService.js";
+
+import {
+  createBulkNotifications,
+} from "./notificationService.js";
+
+import runTransaction
+  from "../utils/runTransaction.js";
+
 export const createAnnouncement =
-  async (data, userId) => {
+  async (
+    data,
+    userId
+  ) => {
     await validateAnnouncementTarget(
       data
     );
 
-    validateExpiry(data.expiresAt);
+    validateExpiry(
+      data.expiresAt
+    );
 
     return Announcement.create({
       ...data,
+
       status:
         ANNOUNCEMENT_STATUS.DRAFT,
-      createdBy: userId,
+
+      createdBy:
+        userId,
     });
   };
 
 export const updateAnnouncement =
-  async (id, data) => {
+  async (
+    id,
+    data
+  ) => {
     const announcement =
-      await Announcement.findById(id);
+      await Announcement.findById(
+        id
+      );
 
     if (!announcement) {
       return null;
@@ -70,7 +98,9 @@ export const updateAnnouncement =
 export const deleteAnnouncement =
   async (id) => {
     const announcement =
-      await Announcement.findById(id);
+      await Announcement.findById(
+        id
+      );
 
     if (!announcement) {
       return null;
@@ -85,85 +115,104 @@ export const deleteAnnouncement =
       );
     }
 
-    return Announcement.findByIdAndDelete(
-      id
-    );
+    return Announcement
+      .findByIdAndDelete(id);
   };
-  import {
-  getAnnouncementRecipients,
-} from "./announcementTargetService.js";
-
-import {
-  createBulkNotifications,
-} from "./notificationService.js";
-
-import {
-  NOTIFICATION_TYPE,
-} from "../constants/notification.js";
 
 export const publishAnnouncement =
   async (id) => {
-    const announcement =
-      await Announcement.findById(id);
+    return runTransaction(
+      async (session) => {
+        /*
+         * Draft condition query mein hi
+         * rakhne se concurrent publish
+         * attempts bhi protected hain.
+         */
+        const announcement =
+          await Announcement
+            .findOne({
+              _id: id,
 
-    if (!announcement) {
-      throw new Error(
-        "Announcement not found"
-      );
-    }
+              status:
+                ANNOUNCEMENT_STATUS
+                  .DRAFT,
+            })
+            .session(session);
 
-    if (
-      announcement.status !==
-      ANNOUNCEMENT_STATUS.DRAFT
-    ) {
-      throw new Error(
-        "Only draft announcement can be published"
-      );
-    }
+        if (!announcement) {
+          const existing =
+            await Announcement
+              .findById(id)
+              .session(session);
 
-    const recipients =
-      await getAnnouncementRecipients(
-        announcement
-      );
+          if (!existing) {
+            throw new Error(
+              "Announcement not found"
+            );
+          }
 
-    announcement.status =
-      ANNOUNCEMENT_STATUS.PUBLISHED;
+          throw new Error(
+            "Only draft announcement can be published"
+          );
+        }
 
-    announcement.publishedAt =
-      new Date();
+        const recipients =
+          await getAnnouncementRecipients(
+            announcement,
+            session
+          );
 
-    await announcement.save();
+        announcement.status =
+          ANNOUNCEMENT_STATUS
+            .PUBLISHED;
 
-    await createBulkNotifications(
-      recipients,
-      {
-        type:
-          NOTIFICATION_TYPE.ANNOUNCEMENT,
+        announcement.publishedAt =
+          new Date();
 
-        title: announcement.title,
+        await announcement.save({
+          session,
+        });
 
-        message:
-          announcement.message,
+        const notifications =
+          await createBulkNotifications(
+            recipients,
+            {
+              type:
+                NOTIFICATION_TYPE
+                  .ANNOUNCEMENT,
 
-        referenceId:
-          announcement._id,
+              title:
+                announcement.title,
 
-        referenceType:
-          "announcement",
+              message:
+                announcement.message,
+
+              referenceId:
+                announcement._id,
+
+              referenceType:
+                "announcement",
+            },
+
+            session
+          );
+
+        return {
+          announcement,
+
+          recipientCount:
+            notifications.length,
+        };
       }
     );
-
-    return {
-      announcement,
-      recipientCount:
-        recipients.length,
-    };
   };
 
 export const archiveAnnouncement =
   async (id) => {
     const announcement =
-      await Announcement.findById(id);
+      await Announcement.findById(
+        id
+      );
 
     if (!announcement) {
       throw new Error(

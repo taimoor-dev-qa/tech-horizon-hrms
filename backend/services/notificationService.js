@@ -1,14 +1,34 @@
 import Notification
   from "../models/Notification.js";
 
-export const createNotification = async (
-  data
-) => {
-  return Notification.create(data);
-};
+export const createNotification =
+  async (
+    data,
+    session = null
+  ) => {
+    if (!session) {
+      return Notification.create(
+        data
+      );
+    }
+
+    const notifications =
+      await Notification.create(
+        [data],
+        {
+          session,
+        }
+      );
+
+    return notifications[0];
+  };
 
 export const createBulkNotifications =
-  async (recipientIds, data) => {
+  async (
+    recipientIds,
+    data,
+    session = null
+  ) => {
     const uniqueRecipients = [
       ...new Set(
         recipientIds.map(String)
@@ -28,6 +48,9 @@ export const createBulkNotifications =
       );
 
     return Notification.insertMany(
-      notifications
+      notifications,
+      session
+        ? { session }
+        : {}
     );
   };
