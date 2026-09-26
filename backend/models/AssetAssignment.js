@@ -85,4 +85,14 @@ const AssetAssignment = mongoose.model(
   assetAssignmentSchema
 );
 
+assetAssignmentSchema.index({
+  employee: 1,
+  status: 1,
+  assignedDate: -1,
+});
+
+assetAssignmentSchema.index({
+  asset: 1,
+  status: 1,
+});
 export default AssetAssignment;

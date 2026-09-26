@@ -81,4 +81,15 @@ const Announcement = mongoose.model(
   announcementSchema
 );
 
+announcementSchema.index({
+  status: 1,
+  priority: 1,
+  createdAt: -1,
+});
+
+announcementSchema.index({
+  audience: 1,
+  createdAt: -1,
+});
+
 export default Announcement;

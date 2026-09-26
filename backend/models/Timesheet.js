@@ -76,6 +76,23 @@ timesheetSchema.index({
   workDate: 1,
 });
 
+timesheetSchema.index({
+  employee: 1,
+  status: 1,
+  workDate: -1,
+});
+
+timesheetSchema.index({
+  project: 1,
+  status: 1,
+  workDate: -1,
+});
+
+timesheetSchema.index({
+  status: 1,
+  workDate: -1,
+});
+
 const Timesheet = mongoose.model(
   "Timesheet",
   timesheetSchema

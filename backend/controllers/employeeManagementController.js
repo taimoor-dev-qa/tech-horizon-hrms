@@ -105,11 +105,14 @@ export const changeEmployeeStatus = async (
   res
 ) => {
   try {
-    const employee = await setEmployeeStatus(
-      req.params.id,
-      req.body.status,
-      req.user
-    );
+    const employee =
+      await setEmployeeStatus(
+        req.params.id,
+        req.body.status,
+        req.user,
+        req.body
+          .employmentEndDate
+      );
 
     if (!employee) {
       return sendNotFound(res);

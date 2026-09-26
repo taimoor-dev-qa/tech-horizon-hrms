@@ -92,7 +92,19 @@ employeeDocumentSchema.index({
   type: 1,
   createdAt: -1,
 });
+employeeDocumentSchema.index({
+  isActive: 1,
+  type: 1,
+  createdAt: -1,
+});
 
+employeeDocumentSchema.index({
+  employee: 1,
+  isActive: 1,
+  visibility: 1,
+  expiresAt: 1,
+  createdAt: -1,
+});
 const EmployeeDocument = mongoose.model(
   "EmployeeDocument",
   employeeDocumentSchema

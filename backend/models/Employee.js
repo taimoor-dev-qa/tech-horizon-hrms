@@ -88,6 +88,11 @@ const employeeSchema = new mongoose.Schema(
             required: true,
         },
 
+        employmentEndDate: {
+            type: Date,
+            default: null,
+        },
+
         employmentType: {
             type: String,
             enum: Object.values(EMPLOYMENT_TYPES),
@@ -110,6 +115,27 @@ const employeeSchema = new mongoose.Schema(
         timestamps: true,
     }
 );
+
+employeeSchema.index({
+    department: 1,
+    status: 1,
+    createdAt: -1,
+});
+
+employeeSchema.index({
+    manager: 1,
+    status: 1,
+});
+
+employeeSchema.index({
+    teamLead: 1,
+    status: 1,
+});
+
+employeeSchema.index({
+    joiningDate: 1,
+    employmentEndDate: 1,
+});
 
 const Employee = mongoose.model(
     "Employee",

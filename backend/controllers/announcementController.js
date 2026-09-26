@@ -35,19 +35,31 @@ export const createAnnouncement =
 export const getAnnouncements =
   async (req, res) => {
     try {
-      const announcements =
-        await getAllService(req.query);
+      const result =
+        await getAllService(
+          req.query
+        );
 
       res.status(200).json({
         success: true,
+
         count:
-          announcements.length,
-        announcements,
+          result
+            .announcements
+            .length,
+
+        pagination:
+          result.pagination,
+
+        announcements:
+          result
+            .announcements,
       });
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message,
+        message:
+          error.message,
       });
     }
   };

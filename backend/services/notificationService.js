@@ -31,11 +31,16 @@ export const createBulkNotifications =
   ) => {
     const uniqueRecipients = [
       ...new Set(
-        recipientIds.map(String)
+        recipientIds.map(
+          (recipient) =>
+            String(recipient)
+        )
       ),
     ];
 
-    if (!uniqueRecipients.length) {
+    if (
+      !uniqueRecipients.length
+    ) {
       return [];
     }
 

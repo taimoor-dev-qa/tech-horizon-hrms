@@ -1,45 +1,137 @@
 import Employee
   from "../models/Employee.js";
 
+import SalaryStructure
+  from "../models/SalaryStructure.js";
+
 import {
   createPayroll,
 } from "./payrollService.js";
 
 import {
-  validatePayrollMonth,
-} from "./payrollValidationService.js";
-
-import {
   validatePayrollMonthPolicy,
 } from "./payrollPolicyService.js";
+
+import {
+  getMonthRange,
+} from "./payrollPeriodService.js";
 
 export const generateBulkPayroll =
   async (
     month,
     userId
   ) => {
-    validatePayrollMonth(month);
-
     await validatePayrollMonthPolicy(
       month
     );
 
+    const {
+      startDate,
+      endDate,
+    } =
+      getMonthRange(
+        month
+      );
+
+    /*
+     * Active + historical salary
+     * structures dono consider honge.
+     *
+     * Resigned employee ki salary
+     * structure deactivate ho sakti hai.
+     */
+    const salaryStructures =
+      await SalaryStructure.find({
+        effectiveFrom: {
+          $lte: endDate,
+        },
+
+        $or: [
+          {
+            effectiveTo:
+              null,
+          },
+
+          {
+            effectiveTo: {
+              $gte:
+                startDate,
+            },
+          },
+        ],
+      }).select(
+        "employee"
+      );
+
+    const employeeIds = [
+      ...new Set(
+        salaryStructures.map(
+          (salary) =>
+            String(
+              salary.employee
+            )
+        )
+      ),
+    ];
+
+    const monthStart =
+      new Date(
+        `${startDate}T00:00:00Z`
+      );
+
+    const monthEnd =
+      new Date(
+        `${endDate}T23:59:59.999Z`
+      );
+
+    /*
+     * Status ke bajaye actual
+     * employment period use hoga.
+     *
+     * Isliye month ke beech resign
+     * hone wala employee final
+     * payroll mein include hoga.
+     */
     const employees =
       await Employee.find({
-        status: {
-          $in: [
-            "active",
-            "on_leave",
-          ],
+        _id: {
+          $in:
+            employeeIds,
         },
-      }).select(
-        "_id employeeId"
-      );
+
+        joiningDate: {
+          $lte:
+            monthEnd,
+        },
+
+        $or: [
+          {
+            employmentEndDate:
+              null,
+          },
+
+          {
+            employmentEndDate: {
+              $gte:
+                monthStart,
+            },
+          },
+        ],
+      })
+        .select(
+          "_id employeeId"
+        )
+        .sort({
+          employeeId: 1,
+        });
 
     const results = {
       month,
+
       created: [],
+
       skipped: [],
+
       failed: [],
     };
 
@@ -56,6 +148,7 @@ export const generateBulkPayroll =
 
               month,
             },
+
             userId
           );
 

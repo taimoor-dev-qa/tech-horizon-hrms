@@ -115,6 +115,17 @@ performanceReviewSchema.index(
   }
 );
 
+performanceReviewSchema.index({
+  status: 1,
+  periodEnd: -1,
+});
+
+performanceReviewSchema.index({
+  reviewer: 1,
+  status: 1,
+  periodEnd: -1,
+});
+
 const PerformanceReview = mongoose.model(
   "PerformanceReview",
   performanceReviewSchema

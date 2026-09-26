@@ -106,33 +106,53 @@ export const getSalaryByEmployee =
 export const getSalaryForPayrollMonth =
   async (
     employeeId,
-    month
+    month,
+    periodStart = null,
+    periodEnd = null
   ) => {
     const {
       startDate,
       endDate,
-    } = getMonthRange(month);
+    } =
+      getMonthRange(
+        month
+      );
 
-    return SalaryStructure.findOne({
-      employee: employeeId,
+    const requiredStart =
+      periodStart ||
+      startDate;
 
-      effectiveFrom: {
-        $lte: startDate,
-      },
+    const requiredEnd =
+      periodEnd ||
+      endDate;
 
-      $or: [
-        {
-          effectiveTo: null,
+    return SalaryStructure
+      .findOne({
+        employee:
+          employeeId,
+
+        effectiveFrom: {
+          $lte:
+            requiredStart,
         },
-        {
-          effectiveTo: {
-            $gte: endDate,
+
+        $or: [
+          {
+            effectiveTo:
+              null,
           },
-        },
-      ],
-    }).sort({
-      effectiveFrom: -1,
-    });
+
+          {
+            effectiveTo: {
+              $gte:
+                requiredEnd,
+            },
+          },
+        ],
+      })
+      .sort({
+        effectiveFrom: -1,
+      });
   };
 
 export const deactivateSalaryStructure =

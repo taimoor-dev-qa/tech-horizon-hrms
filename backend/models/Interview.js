@@ -97,6 +97,21 @@ const interviewSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+interviewSchema.index({
+  interviewer: 1,
+  scheduledAt: 1,
+});
+
+interviewSchema.index({
+  job: 1,
+  status: 1,
+  scheduledAt: 1,
+});
+
+interviewSchema.index({
+  candidate: 1,
+  scheduledAt: -1,
+});
 
 const Interview = mongoose.model(
   "Interview",

@@ -1,5 +1,8 @@
-import Attendance from "../models/Attendance.js";
-import LeaveRequest from "../models/LeaveRequest.js";
+import Attendance
+  from "../models/Attendance.js";
+
+import LeaveRequest
+  from "../models/LeaveRequest.js";
 
 import {
   ATTENDANCE_STATUS,
@@ -11,7 +14,6 @@ import {
 
 import {
   getMonthlyWorkingDates,
-  getMonthRange,
 } from "./payrollPeriodService.js";
 
 import {
@@ -22,106 +24,173 @@ import {
   getWorkingDates,
 } from "./leaveDateService.js";
 
-const countUnpaidLeaveDays = async (
-  employee,
-  month
-) => {
-  const { startDate, endDate } =
-    getMonthRange(month);
+const countUnpaidLeaveDays =
+  async (
+    employee,
+    startDate,
+    endDate
+  ) => {
+    const leaves =
+      await LeaveRequest.find({
+        employee:
+          employee._id,
 
-  const leaves = await LeaveRequest.find({
-    employee: employee._id,
-    status: LEAVE_STATUS.APPROVED,
-    startDate: { $lte: endDate },
-    endDate: { $gte: startDate },
-  }).populate("leaveType");
+        status:
+          LEAVE_STATUS.APPROVED,
 
-  let unpaidDays = 0;
+        startDate: {
+          $lte: endDate,
+        },
 
-  for (const leave of leaves) {
-    if (leave.leaveType?.isPaid !== false) {
-      continue;
+        endDate: {
+          $gte: startDate,
+        },
+      }).populate(
+        "leaveType"
+      );
+
+    let unpaidDays = 0;
+
+    for (
+      const leave
+      of leaves
+    ) {
+      if (
+        leave.leaveType
+          ?.isPaid !== false
+      ) {
+        continue;
+      }
+
+      const overlapStart =
+        leave.startDate >
+        startDate
+          ? leave.startDate
+          : startDate;
+
+      const overlapEnd =
+        leave.endDate <
+        endDate
+          ? leave.endDate
+          : endDate;
+
+      const holidays =
+        await getHolidayDates(
+          overlapStart,
+          overlapEnd
+        );
+
+      const dates =
+        getWorkingDates(
+          overlapStart,
+          overlapEnd,
+          employee.shift
+            .workingDays,
+          holidays
+        );
+
+      unpaidDays +=
+        dates.length;
     }
 
-    const overlapStart =
-      leave.startDate > startDate
-        ? leave.startDate
-        : startDate;
-
-    const overlapEnd =
-      leave.endDate < endDate
-        ? leave.endDate
-        : endDate;
-
-    const holidays = await getHolidayDates(
-      overlapStart,
-      overlapEnd
-    );
-
-    const dates = getWorkingDates(
-      overlapStart,
-      overlapEnd,
-      employee.shift.workingDays,
-      holidays
-    );
-
-    unpaidDays += dates.length;
-  }
-
-  return unpaidDays;
-};
+    return unpaidDays;
+  };
 
 export const getPayrollAttendanceData =
-  async (employee, month) => {
+  async (
+    employee,
+    month,
+    payrollPeriod
+  ) => {
     if (!employee.shift) {
       throw new Error(
         "Employee shift is not assigned"
       );
     }
 
-    const workingDates =
+    const monthlyWorkingDates =
       await getMonthlyWorkingDates(
         month,
-        employee.shift.workingDays
+        employee.shift
+          .workingDays
       );
 
-    const { startDate, endDate } =
-      getMonthRange(month);
+    const payableWorkingDates =
+      await getMonthlyWorkingDates(
+        month,
+        employee.shift
+          .workingDays,
+        payrollPeriod.periodStart,
+        payrollPeriod.periodEnd
+      );
+
+    const payableDateSet =
+      new Set(
+        payableWorkingDates
+      );
 
     const attendance =
       await Attendance.find({
-        employee: employee._id,
+        employee:
+          employee._id,
+
         attendanceDate: {
-          $gte: startDate,
-          $lte: endDate,
+          $gte:
+            payrollPeriod
+              .periodStart,
+
+          $lte:
+            payrollPeriod
+              .periodEnd,
         },
       }).select(
         "attendanceDate status"
       );
 
-    const absentDays = attendance.filter(
-      (record) =>
-        record.status ===
-        ATTENDANCE_STATUS.ABSENT
-    ).length;
+    const absentDays =
+      attendance.filter(
+        (record) =>
+          payableDateSet.has(
+            record
+              .attendanceDate
+          ) &&
+          record.status ===
+            ATTENDANCE_STATUS
+              .ABSENT
+      ).length;
 
-    const halfDays = attendance.filter(
-      (record) =>
-        record.status ===
-        ATTENDANCE_STATUS.HALF_DAY
-    ).length;
+    const halfDays =
+      attendance.filter(
+        (record) =>
+          payableDateSet.has(
+            record
+              .attendanceDate
+          ) &&
+          record.status ===
+            ATTENDANCE_STATUS
+              .HALF_DAY
+      ).length;
 
     const unpaidLeaveDays =
       await countUnpaidLeaveDays(
         employee,
-        month
+        payrollPeriod
+          .periodStart,
+        payrollPeriod
+          .periodEnd
       );
 
     return {
       totalWorkingDays:
-        workingDates.length,
+        monthlyWorkingDates.length,
+
+      payableWorkingDays:
+        payableWorkingDates.length,
+
       absentDays,
+
       halfDays,
+
       unpaidLeaveDays,
     };
   };

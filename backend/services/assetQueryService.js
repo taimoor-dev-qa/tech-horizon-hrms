@@ -1,72 +1,170 @@
-import Asset from "../models/Asset.js";
+import Asset
+  from "../models/Asset.js";
+
 import AssetAssignment
   from "../models/AssetAssignment.js";
-import Employee from "../models/Employee.js";
 
-export const getAssets = async ({
-  search,
-  category,
-  status,
-} = {}) => {
-  const filter = {};
+import Employee
+  from "../models/Employee.js";
 
-  if (category) {
-    filter.category = category;
-  }
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
 
-  if (status) {
-    filter.status = status;
-  }
+export const getAssets =
+  async ({
+    search,
+    category,
+    status,
+    page,
+    limit,
+  } = {}) => {
+    const filter = {};
 
-  if (search) {
-    filter.$or = [
-      {
-        assetTag: {
-          $regex: search,
-          $options: "i",
+    if (category) {
+      filter.category =
+        category;
+    }
+
+    if (status) {
+      filter.status =
+        status;
+    }
+
+    if (search) {
+      filter.$or = [
+        {
+          assetTag: {
+            $regex: search,
+            $options: "i",
+          },
         },
-      },
-      {
-        name: {
-          $regex: search,
-          $options: "i",
+
+        {
+          name: {
+            $regex: search,
+            $options: "i",
+          },
         },
-      },
-      {
-        serialNumber: {
-          $regex: search,
-          $options: "i",
+
+        {
+          serialNumber: {
+            $regex: search,
+            $options: "i",
+          },
         },
-      },
-    ];
-  }
+      ];
+    }
 
-  return Asset.find(filter).sort({
-    createdAt: -1,
-  });
-};
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
 
-export const getAssetById = async (id) => {
-  return Asset.findById(id);
-};
+    const [
+      assets,
+      total,
+    ] =
+      await Promise.all([
+        Asset.find(filter)
+          .sort({
+            createdAt: -1,
+          })
+          .skip(
+            pagination.skip
+          )
+          .limit(
+            pagination.limit
+          ),
 
-export const getMyAssets = async (
-  userId
-) => {
-  const employee = await Employee.findOne({
-    user: userId,
-  });
+        Asset.countDocuments(
+          filter
+        ),
+      ]);
 
-  if (!employee) {
-    throw new Error(
-      "Employee profile not found"
+    return {
+      assets,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
+  };
+
+export const getAssetById =
+  async (id) => {
+    return Asset.findById(
+      id
     );
-  }
+  };
 
-  return AssetAssignment.find({
-    employee: employee._id,
-    status: "assigned",
-  })
-    .populate("asset")
-    .sort({ assignedDate: -1 });
-};
+export const getMyAssets =
+  async (
+    userId,
+    query = {}
+  ) => {
+    const employee =
+      await Employee.findOne({
+        user: userId,
+      });
+
+    if (!employee) {
+      throw new Error(
+        "Employee profile not found"
+      );
+    }
+
+    const filter = {
+      employee:
+        employee._id,
+
+      status:
+        "assigned",
+    };
+
+    const pagination =
+      getPagination(
+        query,
+        20
+      );
+
+    const [
+      assets,
+      total,
+    ] =
+      await Promise.all([
+        AssetAssignment
+          .find(filter)
+          .populate("asset")
+          .sort({
+            assignedDate: -1,
+          })
+          .skip(
+            pagination.skip
+          )
+          .limit(
+            pagination.limit
+          ),
+
+        AssetAssignment
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      assets,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
+  };

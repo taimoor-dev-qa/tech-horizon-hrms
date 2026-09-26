@@ -8,17 +8,25 @@ import {
 export const getMyNotifications =
   async (req, res) => {
     try {
-      const notifications =
-        await getMyService(
+      const result =
+        await getMyNotifications(
           req.user._id,
           req.query
         );
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
+
         count:
-          notifications.length,
-        notifications,
+          result
+            .notifications
+            .length,
+
+        pagination:
+          result.pagination,
+
+        notifications:
+          result.notifications,
       });
     } catch (error) {
       res.status(400).json({

@@ -81,6 +81,17 @@ const assetSchema = new mongoose.Schema(
   }
 );
 
+assetSchema.index({
+  status: 1,
+  category: 1,
+  createdAt: -1,
+});
+
+assetSchema.index({
+  category: 1,
+  createdAt: -1,
+});
+
 const Asset = mongoose.model(
   "Asset",
   assetSchema

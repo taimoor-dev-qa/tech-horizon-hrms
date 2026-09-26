@@ -1,3 +1,8 @@
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
+
 import Employee from "../models/Employee.js";
 
 import EmployeeDocument
@@ -32,28 +37,69 @@ const populateDocument = (query) => {
     );
 };
 
-export const getDocuments = async ({
-  employee,
-  type,
-} = {}) => {
-  const filter = {
-    isActive: true,
+export const getDocuments =
+  async ({
+    employee,
+    type,
+    page,
+    limit,
+  } = {}) => {
+    const filter = {
+      isActive: true,
+    };
+
+    if (employee) {
+      filter.employee =
+        employee;
+    }
+
+    if (type) {
+      filter.type =
+        type;
+    }
+
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
+
+    const [
+      documents,
+      total,
+    ] =
+      await Promise.all([
+        populateDocument(
+          EmployeeDocument
+            .find(filter)
+            .sort({
+              createdAt: -1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        EmployeeDocument
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      documents,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
-
-  if (employee) {
-    filter.employee = employee;
-  }
-
-  if (type) {
-    filter.type = type;
-  }
-
-  return populateDocument(
-    EmployeeDocument.find(filter).sort({
-      createdAt: -1,
-    })
-  );
-};
 
 export const getMyDocuments =
   async (

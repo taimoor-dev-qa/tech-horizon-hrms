@@ -91,6 +91,16 @@ candidateSchema.index(
         unique: true,
     }
 );
+candidateSchema.index({
+    job: 1,
+    status: 1,
+    createdAt: -1,
+});
+
+candidateSchema.index({
+    status: 1,
+    createdAt: -1,
+});
 
 const Candidate = mongoose.model(
     "Candidate",

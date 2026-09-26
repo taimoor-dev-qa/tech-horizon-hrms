@@ -159,11 +159,47 @@ export const updateEmployeeSchema =
   });
 
 export const employeeStatusSchema =
-  z.object({
-    status: enumValue(
-      Object.values(
-        EMPLOYEE_STATUS
+  z
+    .object({
+      status: enumValue(
+        Object.values(
+          EMPLOYEE_STATUS
+        ),
+        "Invalid employee status"
       ),
-      "Invalid employee status"
-    ),
-  });
+
+      employmentEndDate:
+        dateString
+          .optional()
+          .nullable(),
+    })
+    .superRefine(
+      (
+        data,
+        ctx
+      ) => {
+        const endingStatuses = [
+          EMPLOYEE_STATUS.RESIGNED,
+          EMPLOYEE_STATUS.TERMINATED,
+        ];
+
+        if (
+          endingStatuses.includes(
+            data.status
+          ) &&
+          !data.employmentEndDate
+        ) {
+          ctx.addIssue({
+            code:
+              z.ZodIssueCode.custom,
+
+            path: [
+              "employmentEndDate",
+            ],
+
+            message:
+              "Employment end date is required for resigned or terminated employees",
+          });
+        }
+      }
+    );

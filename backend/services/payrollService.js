@@ -14,8 +14,8 @@ import {
 } from "./payrollAttendanceService.js";
 
 import {
-  validatePayrollMonth,
-} from "./payrollValidationService.js";
+  getEmployeePayrollPeriod,
+} from "./payrollPeriodService.js";
 
 import {
   getSalaryForPayrollMonth,
@@ -30,19 +30,19 @@ export const createPayroll =
     data,
     userId
   ) => {
-    validatePayrollMonth(
-      data.month
-    );
-
     const policy =
       await validatePayrollMonthPolicy(
         data.month
       );
 
     const employee =
-      await Employee.findById(
-        data.employee
-      ).populate("shift");
+      await Employee
+        .findById(
+          data.employee
+        )
+        .populate(
+          "shift"
+        );
 
     if (!employee) {
       throw new Error(
@@ -65,42 +65,72 @@ export const createPayroll =
       );
     }
 
+    const payrollPeriod =
+      getEmployeePayrollPeriod(
+        employee,
+        data.month
+      );
+
     const salary =
       await getSalaryForPayrollMonth(
         employee._id,
-        data.month
+        data.month,
+        payrollPeriod
+          .periodStart,
+        payrollPeriod
+          .periodEnd
       );
 
     if (!salary) {
       throw new Error(
-        "Salary structure not found for this payroll month"
-      );
-    }
-
-    if (
-      salary.currency !==
-      policy.currency
-    ) {
-      throw new Error(
-        `Salary currency does not match company currency (${policy.currency})`
+        "Salary structure does not cover employee's payable payroll period"
       );
     }
 
     const attendance =
       await getPayrollAttendanceData(
         employee,
-        data.month
+        data.month,
+        payrollPeriod
       );
+
+    if (
+      !attendance
+        .totalWorkingDays
+    ) {
+      throw new Error(
+        "Selected payroll month has no working days"
+      );
+    }
+
+    if (
+      !attendance
+        .payableWorkingDays
+    ) {
+      throw new Error(
+        "Employee has no payable working days in selected month"
+      );
+    }
+
+    const prorationFactor =
+      attendance
+        .payableWorkingDays /
+      attendance
+        .totalWorkingDays;
 
     const dailySalary =
       calculateDailySalary(
         salary.basicSalary,
-        attendance.totalWorkingDays
+        attendance
+          .totalWorkingDays
       );
 
     const absenceUnits =
-      attendance.absentDays +
-      attendance.halfDays * 0.5;
+      attendance
+        .absentDays +
+      attendance
+        .halfDays *
+        0.5;
 
     const absenceDeduction =
       policy.deductAbsence
@@ -109,7 +139,8 @@ export const createPayroll =
         : 0;
 
     const unpaidLeaveDeduction =
-      policy.deductUnpaidLeave
+      policy
+        .deductUnpaidLeave
         ? dailySalary *
           attendance
             .unpaidLeaveDays
@@ -118,7 +149,8 @@ export const createPayroll =
     const overtimeHours =
       policy.overtimeEnabled
         ? Number(
-            data.overtimeHours ||
+            data
+              .overtimeHours ||
               0
           )
         : 0;
@@ -127,17 +159,21 @@ export const createPayroll =
       calculatePayroll({
         salary,
 
+        prorationFactor,
+
         overtimeHours,
 
         bonus:
-          data.bonus || 0,
+          data.bonus ||
+          0,
 
         absenceDeduction,
 
         unpaidLeaveDeduction,
 
         otherDeduction:
-          data.otherDeduction,
+          data
+            .otherDeduction,
       });
 
     return Payroll.create({
@@ -151,20 +187,42 @@ export const createPayroll =
         data.month,
 
       basicSalary:
-        salary.basicSalary,
+        calculation
+          .basicSalary,
 
       allowances:
-        calculation.allowances,
+        calculation
+          .allowances,
 
       workingDays:
         attendance
           .totalWorkingDays,
 
+      payableWorkingDays:
+        attendance
+          .payableWorkingDays,
+
+      prorationFactor:
+        Number(
+          prorationFactor
+            .toFixed(6)
+        ),
+
+      payrollPeriodStart:
+        payrollPeriod
+          .periodStart,
+
+      payrollPeriodEnd:
+        payrollPeriod
+          .periodEnd,
+
       absentDays:
-        attendance.absentDays,
+        attendance
+          .absentDays,
 
       halfDays:
-        attendance.halfDays,
+        attendance
+          .halfDays,
 
       unpaidLeaveDays:
         attendance
@@ -178,11 +236,13 @@ export const createPayroll =
 
       bonus:
         Number(
-          data.bonus || 0
+          data.bonus ||
+          0
         ),
 
       deductions:
-        calculation.deductions,
+        calculation
+          .deductions,
 
       grossSalary:
         calculation

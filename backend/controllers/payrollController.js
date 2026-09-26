@@ -32,48 +32,69 @@ export const createPayroll = async (
   }
 };
 
-export const getPayrolls = async (
-  req,
-  res
-) => {
-  try {
-    const payrolls =
-      await getPayrollsService(req.query);
+export const getPayrolls =
+  async (req, res) => {
+    try {
+      const result =
+        await getPayrollsService(
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: payrolls.length,
-      payrolls,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
 
-export const getMyPayrolls = async (
-  req,
-  res
-) => {
-  try {
-    const payrolls =
-      await getMyService(req.user._id);
+        count:
+          result
+            .payrolls
+            .length,
 
-    res.status(200).json({
-      success: true,
-      count: payrolls.length,
-      payrolls,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+        pagination:
+          result.pagination,
 
+        payrolls:
+          result.payrolls,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
+
+export const getMyPayrolls =
+  async (req, res) => {
+    try {
+      const result =
+        await getMyService(
+          req.user._id,
+          req.query
+        );
+
+      res.status(200).json({
+        success: true,
+
+        count:
+          result
+            .payrolls
+            .length,
+
+        pagination:
+          result.pagination,
+
+        payrolls:
+          result.payrolls,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
+  
 export const getPayrollById = async (
   req,
   res

@@ -34,26 +34,36 @@ export const uploadDocument = async (
   }
 };
 
-export const getDocuments = async (
-  req,
-  res
-) => {
-  try {
-    const documents =
-      await getAllService(req.query);
+export const getDocuments =
+  async (req, res) => {
+    try {
+      const result =
+        await getDocumentsService(
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: documents.length,
-      documents,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
+
+        count:
+          result
+            .documents
+            .length,
+
+        pagination:
+          result.pagination,
+
+        documents:
+          result.documents,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
 
 export const getMyDocuments = async (
   req,

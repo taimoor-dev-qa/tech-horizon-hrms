@@ -32,49 +32,64 @@ export const createAsset = async (
   }
 };
 
-export const getAssets = async (
-  req,
-  res
-) => {
-  try {
-    const assets =
-      await getAssetsService(req.query);
+export const getAssets =
+  async (req, res) => {
+    try {
+      const result =
+        await getAssetsService(
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: assets.length,
-      assets,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
 
-export const getMyAssets = async (
-  req,
-  res
-) => {
-  try {
-    const assets =
-      await getMyAssetsService(
-        req.user._id
-      );
+        count:
+          result.assets.length,
 
-    res.status(200).json({
-      success: true,
-      count: assets.length,
-      assets,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+        pagination:
+          result.pagination,
+
+        assets:
+          result.assets,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
+
+export const getMyAssets =
+  async (req, res) => {
+    try {
+      const result =
+        await getMyAssetsService(
+          req.user._id,
+          req.query
+        );
+
+      res.status(200).json({
+        success: true,
+
+        count:
+          result.assets.length,
+
+        pagination:
+          result.pagination,
+
+        assets:
+          result.assets,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
 
 export const getAssetById = async (
   req,

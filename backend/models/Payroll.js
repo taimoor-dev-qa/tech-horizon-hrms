@@ -54,6 +54,29 @@ const payrollSchema = new mongoose.Schema(
             default: 0,
         },
 
+        payableWorkingDays: {
+            type: Number,
+            min: 0,
+            default: 0,
+        },
+
+        prorationFactor: {
+            type: Number,
+            min: 0,
+            max: 1,
+            default: 1,
+        },
+
+        payrollPeriodStart: {
+            type: String,
+            default: null,
+        },
+
+        payrollPeriodEnd: {
+            type: String,
+            default: null,
+        },
+
         absentDays: {
             type: Number,
             min: 0,
@@ -68,7 +91,7 @@ const payrollSchema = new mongoose.Schema(
 
         unpaidLeaveDays: {
             type: Number,
-            min: 0 ,
+            min: 0,
             default: 0,
         },
         overtimeHours: {
@@ -178,6 +201,21 @@ payrollSchema.index(
         unique: true,
     }
 );
+payrollSchema.index({
+    month: -1,
+    status: 1,
+});
+
+payrollSchema.index({
+    status: 1,
+    month: -1,
+});
+
+payrollSchema.index({
+    employee: 1,
+    status: 1,
+    month: -1,
+});
 
 const Payroll = mongoose.model(
     "Payroll",

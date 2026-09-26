@@ -127,4 +127,10 @@ const SalaryStructure = mongoose.model(
   salaryStructureSchema
 );
 
+salaryStructureSchema.index({
+  employee: 1,
+  effectiveFrom: -1,
+  effectiveTo: 1,
+});
+
 export default SalaryStructure;

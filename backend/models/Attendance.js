@@ -71,6 +71,16 @@ attendanceSchema.index(
     unique: true,
   }
 );
+attendanceSchema.index({
+  attendanceDate: 1,
+  status: 1,
+  employee: 1,
+});
+
+attendanceSchema.index({
+  status: 1,
+  attendanceDate: -1,
+});
 
 const Attendance = mongoose.model(
   "Attendance",
