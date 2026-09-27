@@ -1,68 +1,123 @@
-import multer from "multer";
+import multer
+  from "multer";
 
-const handleDuplicateKey = (
-  error
-) => {
-  const field = Object.keys(
-    error.keyValue || {}
-  )[0];
+const handleDuplicateKey =
+  (error) => {
+    const field =
+      Object.keys(
+        error.keyValue || {}
+      )[0];
 
-  const value =
-    error.keyValue?.[field];
+    const value =
+      error.keyValue?.[
+        field
+      ];
 
-  return {
-    statusCode: 409,
-    message: field
-      ? `${field} '${value}' already exists`
-      : "Duplicate value already exists",
+    return {
+      statusCode: 409,
+
+      message: field
+        ? `${field} '${value}' already exists`
+        : "Duplicate value already exists",
+    };
   };
-};
 
-const handleValidationError = (
-  error
-) => {
-  const messages = Object.values(
-    error.errors || {}
-  ).map(
-    (item) => item.message
-  );
+const handleValidationError =
+  (error) => {
+    const messages =
+      Object.values(
+        error.errors || {}
+      ).map(
+        (item) =>
+          item.message
+      );
 
-  return {
-    statusCode: 400,
-    message:
-      messages.join(", ") ||
-      "Validation failed",
+    return {
+      statusCode: 400,
+
+      message:
+        messages.join(", ") ||
+        "Validation failed",
+    };
   };
-};
 
-const handleCastError = () => {
-  return {
-    statusCode: 400,
-    message: "Invalid resource ID",
-  };
-};
-
-const handleMulterError = (
-  error
-) => {
-  if (
-    error.code ===
-    "LIMIT_FILE_SIZE"
-  ) {
+const handleCastError =
+  () => {
     return {
       statusCode: 400,
       message:
-        "Uploaded file exceeds the allowed size limit",
+        "Invalid resource ID",
     };
-  }
-
-  return {
-    statusCode: 400,
-    message:
-      error.message ||
-      "File upload failed",
   };
-};
+
+const handleMulterError =
+  (error) => {
+    if (
+      error.code ===
+      "LIMIT_FILE_SIZE"
+    ) {
+      return {
+        statusCode: 400,
+
+        message:
+          "Uploaded file exceeds the allowed size limit",
+      };
+    }
+
+    if (
+      error.code ===
+      "LIMIT_FILE_COUNT"
+    ) {
+      return {
+        statusCode: 400,
+
+        message:
+          "Too many files uploaded",
+      };
+    }
+
+    if (
+      error.code ===
+      "LIMIT_UNEXPECTED_FILE"
+    ) {
+      return {
+        statusCode: 400,
+
+        message:
+          "Unexpected file field",
+      };
+    }
+
+    return {
+      statusCode: 400,
+
+      message:
+        error.message ||
+        "File upload failed",
+    };
+  };
+
+const handleJwtError =
+  (error) => {
+    if (
+      error.name ===
+      "TokenExpiredError"
+    ) {
+      return {
+        statusCode: 401,
+
+        message:
+          "Authentication token has expired",
+      };
+    }
+
+    return {
+      statusCode: 401,
+
+      message:
+        "Invalid authentication token",
+    };
+  };
 
 const errorHandler = (
   error,
@@ -72,22 +127,26 @@ const errorHandler = (
 ) => {
   let statusCode =
     error.statusCode ||
-    res.statusCode;
-
-  if (
-    !statusCode ||
-    statusCode === 200
-  ) {
-    statusCode = 500;
-  }
+    500;
 
   let message =
     error.message ||
     "Internal server error";
 
-  if (error.code === 11000) {
+  let details =
+    error.details ||
+    null;
+
+  /*
+   * Mongo duplicate key
+   */
+  if (
+    error.code === 11000
+  ) {
     const handled =
-      handleDuplicateKey(error);
+      handleDuplicateKey(
+        error
+      );
 
     statusCode =
       handled.statusCode;
@@ -96,12 +155,17 @@ const errorHandler = (
       handled.message;
   }
 
+  /*
+   * Mongoose validation
+   */
   if (
     error.name ===
     "ValidationError"
   ) {
     const handled =
-      handleValidationError(error);
+      handleValidationError(
+        error
+      );
 
     statusCode =
       handled.statusCode;
@@ -110,11 +174,15 @@ const errorHandler = (
       handled.message;
   }
 
+  /*
+   * Mongoose invalid ID
+   */
   if (
-    error.name === "CastError"
+    error.name ===
+    "CastError"
   ) {
     const handled =
-      handleCastError(error);
+      handleCastError();
 
     statusCode =
       handled.statusCode;
@@ -123,18 +191,63 @@ const errorHandler = (
       handled.message;
   }
 
+  /*
+   * Multer
+   */
   if (
     error instanceof
     multer.MulterError
   ) {
     const handled =
-      handleMulterError(error);
+      handleMulterError(
+        error
+      );
 
     statusCode =
       handled.statusCode;
 
     message =
       handled.message;
+  }
+
+  /*
+   * JWT
+   */
+  if (
+    error.name ===
+      "TokenExpiredError" ||
+    error.name ===
+      "JsonWebTokenError" ||
+    error.name ===
+      "NotBeforeError"
+  ) {
+    const handled =
+      handleJwtError(
+        error
+      );
+
+    statusCode =
+      handled.statusCode;
+
+    message =
+      handled.message;
+  }
+
+  /*
+   * Production mein unexpected
+   * internal error detail expose
+   * nahi karni.
+   */
+  if (
+    process.env.NODE_ENV ===
+      "production" &&
+    statusCode >= 500 &&
+    !error.isOperational
+  ) {
+    message =
+      "Internal server error";
+
+    details = null;
   }
 
   const response = {
@@ -142,16 +255,22 @@ const errorHandler = (
     message,
   };
 
+  if (details) {
+    response.errors =
+      details;
+  }
+
   if (
     process.env.NODE_ENV ===
     "development"
   ) {
-    response.stack = error.stack;
+    response.stack =
+      error.stack;
   }
 
-  res.status(statusCode).json(
-    response
-  );
+  res
+    .status(statusCode)
+    .json(response);
 };
 
 export default errorHandler;

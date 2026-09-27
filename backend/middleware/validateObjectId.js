@@ -1,24 +1,36 @@
-import mongoose from "mongoose";
+import mongoose
+  from "mongoose";
 
-export const validateObjectId = (
-  parameter = "id"
-) => {
-  return (req, res, next) => {
-    const value =
-      req.params[parameter];
+import AppError
+  from "../utils/AppError.js";
 
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        value
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          `Invalid ${parameter}`,
-      });
-    }
+export const validateObjectId =
+  (
+    parameter = "id"
+  ) => {
+    return (
+      req,
+      res,
+      next
+    ) => {
+      const value =
+        req.params[
+          parameter
+        ];
 
-    next();
+      if (
+        !mongoose.Types
+          .ObjectId
+          .isValid(value)
+      ) {
+        return next(
+          new AppError(
+            `Invalid ${parameter}`,
+            400
+          )
+        );
+      }
+
+      next();
+    };
   };
-};

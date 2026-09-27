@@ -1,21 +1,39 @@
-const authorizeRoles = (...allowedRoles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication required",
-      });
-    }
+import AppError
+  from "../utils/AppError.js";
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: "You do not have permission to access this resource",
-      });
-    }
+const authorizeRoles =
+  (
+    ...allowedRoles
+  ) => {
+    return (
+      req,
+      res,
+      next
+    ) => {
+      if (!req.user) {
+        return next(
+          new AppError(
+            "Authentication required",
+            401
+          )
+        );
+      }
 
-    next();
+      if (
+        !allowedRoles.includes(
+          req.user.role
+        )
+      ) {
+        return next(
+          new AppError(
+            "You do not have permission to access this resource",
+            403
+          )
+        );
+      }
+
+      next();
+    };
   };
-};
 
 export default authorizeRoles;

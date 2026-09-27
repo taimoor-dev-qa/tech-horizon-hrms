@@ -1,15 +1,17 @@
+import AppError
+  from "../utils/AppError.js";
+
 const notFound = (
   req,
   res,
   next
 ) => {
-  const error = new Error(
-    `Route not found: ${req.method} ${req.originalUrl}`
+  next(
+    new AppError(
+      `Route not found: ${req.method} ${req.originalUrl}`,
+      404
+    )
   );
-
-  res.status(404);
-
-  next(error);
 };
 
 export default notFound;

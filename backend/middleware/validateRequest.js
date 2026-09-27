@@ -1,18 +1,32 @@
-const validateRequest = (schema) => {
-  return (req, res, next) => {
+import AppError
+  from "../utils/AppError.js";
+
+const validateRequest = (
+  schema
+) => {
+  return (
+    req,
+    res,
+    next
+  ) => {
     if (
       !schema ||
-      typeof schema.safeParse !== "function"
+      typeof schema
+        .safeParse !==
+        "function"
     ) {
-      return res.status(500).json({
-        success: false,
-        message:
+      return next(
+        new AppError(
           "Invalid request validation schema",
-      });
+          500
+        )
+      );
     }
 
     const result =
-      schema.safeParse(req.body);
+      schema.safeParse(
+        req.body
+      );
 
     if (!result.success) {
       const errors =
@@ -20,25 +34,30 @@ const validateRequest = (schema) => {
           (issue) => ({
             field:
               issue.path.length
-                ? issue.path.join(".")
+                ? issue.path.join(
+                    "."
+                  )
                 : "body",
 
-            location: "body",
+            location:
+              "body",
 
             message:
               issue.message,
           })
         );
 
-      return res.status(400).json({
-        success: false,
-        message:
+      return next(
+        new AppError(
           "Request validation failed",
-        errors,
-      });
+          400,
+          errors
+        )
+      );
     }
 
-    req.body = result.data;
+    req.body =
+      result.data;
 
     next();
   };

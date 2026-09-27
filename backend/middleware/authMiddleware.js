@@ -1,78 +1,79 @@
-import jwt from "jsonwebtoken";
+import jwt
+  from "jsonwebtoken";
 
-import User from "../models/User.js";
+import User
+  from "../models/User.js";
 
-const protect = async (
-  req,
-  res,
-  next
-) => {
-  try {
-    const authorization =
-      req.headers.authorization;
+import AppError
+  from "../utils/AppError.js";
 
-    if (
-      !authorization?.startsWith(
-        "Bearer "
-      )
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
+import asyncHandler
+  from "../utils/asyncHandler.js";
+
+const protect =
+  asyncHandler(
+    async (
+      req,
+      res,
+      next
+    ) => {
+      const authorization =
+        req.headers
+          .authorization;
+
+      if (
+        !authorization
+          ?.startsWith(
+            "Bearer "
+          )
+      ) {
+        throw new AppError(
           "Authentication token is required",
-      });
-    }
+          401
+        );
+      }
 
-    const token =
-      authorization.split(" ")[1];
+      const token =
+        authorization
+          .split(" ")[1];
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
+      /*
+       * TokenExpiredError /
+       * JsonWebTokenError
+       * central error middleware
+       * handle karega.
+       */
+      const decoded =
+        jwt.verify(
+          token,
+          process.env
+            .JWT_SECRET
+        );
 
-    const user =
-      await User.findById(
-        decoded.userId
-      );
+      const user =
+        await User.findById(
+          decoded.userId
+        );
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message:
+      if (!user) {
+        throw new AppError(
           "User account not found",
-      });
-    }
+          401
+        );
+      }
 
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message:
+      if (!user.isActive) {
+        throw new AppError(
           "User account is inactive",
-      });
+          403
+        );
+      }
+
+      req.user =
+        user;
+
+      next();
     }
-
-    req.user = user;
-
-    next();
-  } catch (error) {
-    if (
-      error.name ===
-      "TokenExpiredError"
-    ) {
-      return res.status(401).json({
-        success: false,
-        message:
-          "Authentication token has expired",
-      });
-    }
-
-    return res.status(401).json({
-      success: false,
-      message:
-        "Invalid authentication token",
-    });
-  }
-};
+  );
 
 export default protect;
