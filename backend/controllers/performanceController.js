@@ -32,9 +32,12 @@ export const createPerformanceReview =
   };
 
 export const getPerformanceReviews =
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
-      const reviews =
+      const result =
         await getReviewsService(
           req.user,
           req.query
@@ -42,35 +45,62 @@ export const getPerformanceReviews =
 
       res.status(200).json({
         success: true,
-        count: reviews.length,
-        reviews,
+
+        count:
+          result
+            .reviews
+            .length,
+
+        pagination:
+          result.pagination,
+
+        reviews:
+          result.reviews,
       });
     } catch (error) {
-      res.status(400).json({
+      res.status(
+        error.statusCode ||
+        400
+      ).json({
         success: false,
-        message: error.message,
+        message:
+          error.message,
       });
     }
   };
 
 export const getMyPerformanceReviews =
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
-      const reviews = await getMyService(
-        req.user._id
-      );
+      const result =
+        await getMyService(
+          req.user._id,
+          req.query
+        );
 
       res.status(200).json({
         success: true,
-        count: reviews.length,
-        reviews,
+
+        count:
+          result
+            .reviews
+            .length,
+
+        pagination:
+          result.pagination,
+
+        reviews:
+          result.reviews,
       });
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: error.message,
+        message:
+          error.message,
       });
-
     }
   };
 

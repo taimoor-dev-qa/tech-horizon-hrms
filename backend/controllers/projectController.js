@@ -34,52 +34,78 @@ export const createProject = async (
   }
 };
 
-export const getProjects = async (
-  req,
-  res
-) => {
-  try {
-    const projects =
-      await getProjectsService(
-        req.user,
-        req.query
-      );
+export const getProjects =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const result =
+        await getProjectsService(
+          req.user,
+          req.query
+        );
 
-    res.status(200).json({
-      success: true,
-      count: projects.length,
-      projects,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+      res.status(200).json({
+        success: true,
 
-export const getMyProjects = async (
-  req,
-  res
-) => {
-  try {
-    const projects =
-      await getMyProjectsService(
-        req.user._id
-      );
+        count:
+          result
+            .projects
+            .length,
 
-    res.status(200).json({
-      success: true,
-      count: projects.length,
-      projects,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+        pagination:
+          result.pagination,
+
+        projects:
+          result.projects,
+      });
+    } catch (error) {
+      res.status(
+        error.statusCode ||
+        500
+      ).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
+
+export const getMyProjects =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const result =
+        await getMyProjectsService(
+          req.user._id,
+          req.query
+        );
+
+      res.status(200).json({
+        success: true,
+
+        count:
+          result
+            .projects
+            .length,
+
+        pagination:
+          result.pagination,
+
+        projects:
+          result.projects,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message:
+          error.message,
+      });
+    }
+  };
 
 export const getProjectById = async (
   req,
@@ -116,13 +142,13 @@ export const updateProject = async (
   res
 ) => {
   try {
-    
+
     const project =
-  await updateProjectService(
-    req.params.id,
-    req.body,
-    req.user
-  );
+      await updateProjectService(
+        req.params.id,
+        req.body,
+        req.user
+      );
 
     if (!project) {
       return res.status(404).json({

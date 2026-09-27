@@ -5,9 +5,13 @@ import Project
   from "../models/Project.js";
 
 import {
-  canAccessProject,
   getProjectAccessCondition,
 } from "./projectAccessService.js";
+
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
 
 const populateProject = (
   query
@@ -22,12 +26,15 @@ const populateProject = (
       populate: [
         {
           path: "user",
-          select: "name email",
+          select:
+            "name email",
         },
 
         {
-          path: "designation",
-          select: "name code",
+          path:
+            "designation",
+          select:
+            "name code",
         },
       ],
     })
@@ -41,12 +48,15 @@ const populateProject = (
       populate: [
         {
           path: "user",
-          select: "name email",
+          select:
+            "name email",
         },
 
         {
-          path: "designation",
-          select: "name code",
+          path:
+            "designation",
+          select:
+            "name code",
         },
       ],
     });
@@ -59,69 +69,143 @@ export const getProjects =
       status,
       priority,
       search,
+      page,
+      limit,
     } = {}
   ) => {
-    const filter = {};
+    const baseFilter = {};
 
     if (status) {
-      filter.status = status;
+      baseFilter.status =
+        status;
     }
 
     if (priority) {
-      filter.priority =
+      baseFilter.priority =
         priority;
     }
 
-    const conditions = [];
-
     if (search) {
-      conditions.push({
-        $or: [
-          {
-            name: {
-              $regex: search,
-              $options: "i",
-            },
+      baseFilter.$or = [
+        {
+          name: {
+            $regex: search,
+            $options: "i",
           },
+        },
 
-          {
-            code: {
-              $regex: search,
-              $options: "i",
-            },
+        {
+          code: {
+            $regex: search,
+            $options: "i",
           },
+        },
 
-          {
-            client: {
-              $regex: search,
-              $options: "i",
-            },
+        {
+          client: {
+            $regex: search,
+            $options: "i",
           },
-        ],
-      });
+        },
+      ];
     }
 
+    /*
+     * Step 28B security.
+     *
+     * Super/HR:
+     * all projects
+     *
+     * Other allowed users:
+     * manager/member projects only.
+     */
     const accessCondition =
       await getProjectAccessCondition(
         actor
       );
 
-    if (accessCondition) {
+    const conditions = [];
+
+    if (
+      Object.keys(
+        baseFilter
+      ).length
+    ) {
+      conditions.push(
+        baseFilter
+      );
+    }
+
+    if (
+      accessCondition &&
+      Object.keys(
+        accessCondition
+      ).length
+    ) {
       conditions.push(
         accessCondition
       );
     }
 
-    if (conditions.length) {
-      filter.$and =
-        conditions;
+    let filter = {};
+
+    if (
+      conditions.length === 1
+    ) {
+      filter =
+        conditions[0];
     }
 
-    return populateProject(
-      Project.find(filter).sort({
-        createdAt: -1,
-      })
-    );
+    if (
+      conditions.length > 1
+    ) {
+      filter = {
+        $and:
+          conditions,
+      };
+    }
+
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
+
+    const [
+      projects,
+      total,
+    ] =
+      await Promise.all([
+        populateProject(
+          Project
+            .find(filter)
+            .sort({
+              createdAt: -1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        Project
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      projects,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
 
 export const getProjectById =
@@ -129,32 +213,54 @@ export const getProjectById =
     actor,
     id
   ) => {
-    const project =
-      await Project.findById(id);
+    /*
+     * YE CURRENT STEP 28B
+     * SECURITY VERSION HI
+     * REHNI CHAHIYE.
+     */
 
-    if (!project) {
-      return null;
-    }
-
-    const allowed =
-      await canAccessProject(
-        actor,
-        project
+    const accessCondition =
+      await getProjectAccessCondition(
+        actor
       );
 
-    if (!allowed) {
-      throw new Error(
-        "You do not have access to this project"
+    const conditions = [
+      {
+        _id: id,
+      },
+    ];
+
+    if (
+      accessCondition &&
+      Object.keys(
+        accessCondition
+      ).length
+    ) {
+      conditions.push(
+        accessCondition
       );
     }
+
+    const filter =
+      conditions.length === 1
+        ? conditions[0]
+        : {
+            $and:
+              conditions,
+          };
 
     return populateProject(
-      Project.findById(id)
+      Project.findOne(
+        filter
+      )
     );
   };
 
 export const getMyProjects =
-  async (userId) => {
+  async (
+    userId,
+    query = {}
+  ) => {
     const employee =
       await Employee.findOne({
         user: userId,
@@ -166,21 +272,59 @@ export const getMyProjects =
       );
     }
 
-    return populateProject(
-      Project.find({
-        $or: [
-          {
-            manager:
-              employee._id,
-          },
+    const filter = {
+      $or: [
+        {
+          manager:
+            employee._id,
+        },
 
-          {
-            members:
-              employee._id,
-          },
-        ],
-      }).sort({
-        createdAt: -1,
-      })
-    );
+        {
+          members:
+            employee._id,
+        },
+      ],
+    };
+
+    const pagination =
+      getPagination(
+        query,
+        20
+      );
+
+    const [
+      projects,
+      total,
+    ] =
+      await Promise.all([
+        populateProject(
+          Project
+            .find(filter)
+            .sort({
+              createdAt: -1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        Project
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      projects,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };

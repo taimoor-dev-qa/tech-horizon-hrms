@@ -9,10 +9,15 @@ import {
 } from "../constants/performance.js";
 
 import {
-  canAccessPerformanceReview,
   getAccessibleEmployeeIds,
   hasFullPerformanceAccess,
+  canAccessPerformanceReview,
 } from "./performanceAccessService.js";
+
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
 
 const populateReview = (
   query
@@ -27,17 +32,22 @@ const populateReview = (
       populate: [
         {
           path: "user",
-          select: "name email",
+          select:
+            "name email",
         },
 
         {
-          path: "department",
-          select: "name code",
+          path:
+            "department",
+          select:
+            "name code",
         },
 
         {
-          path: "designation",
-          select: "name code",
+          path:
+            "designation",
+          select:
+            "name code",
         },
       ],
     })
@@ -56,30 +66,51 @@ export const getPerformanceReviews =
       status,
       periodStart,
       periodEnd,
+      page,
+      limit,
     } = {}
   ) => {
-    const filter = {};
+    const baseFilter = {};
 
     if (employee) {
-      filter.employee = employee;
+      baseFilter.employee =
+        employee;
     }
 
     if (status) {
-      filter.status = status;
+      baseFilter.status =
+        status;
     }
 
     if (periodStart) {
-      filter.periodStart = {
-        $gte: periodStart,
+      baseFilter.periodStart = {
+        $gte:
+          periodStart,
       };
     }
 
     if (periodEnd) {
-      filter.periodEnd = {
-        $lte: periodEnd,
+      baseFilter.periodEnd = {
+        $lte:
+          periodEnd,
       };
     }
 
+    const conditions = [];
+
+    if (
+      Object.keys(
+        baseFilter
+      ).length
+    ) {
+      conditions.push(
+        baseFilter
+      );
+    }
+
+    /*
+     * Step 28A security.
+     */
     if (
       !hasFullPerformanceAccess(
         actor
@@ -90,42 +121,94 @@ export const getPerformanceReviews =
           actor
         );
 
-      if (filter.employee) {
-        const allowed =
-          employeeIds.some(
-            (id) =>
-              String(id) ===
-              String(
-                filter.employee
-              )
-          );
+      const accessConditions = [
+        /*
+         * User reviewer hai to
+         * apni review access kar
+         * sakta hai.
+         */
+        {
+          reviewer:
+            actor._id,
+        },
+      ];
 
-        if (!allowed) {
-          filter._id = null;
-        }
-      } else {
-        filter.$or = [
-          {
-            employee: {
-              $in: employeeIds,
-            },
+      if (
+        employeeIds.length
+      ) {
+        accessConditions.push({
+          employee: {
+            $in:
+              employeeIds,
           },
-
-          {
-            reviewer:
-              actor._id,
-          },
-        ];
+        });
       }
+
+      conditions.push({
+        $or:
+          accessConditions,
+      });
     }
 
-    return populateReview(
-      PerformanceReview.find(
-        filter
-      ).sort({
-        periodEnd: -1,
-      })
-    );
+    let filter = {};
+
+    if (
+      conditions.length === 1
+    ) {
+      filter =
+        conditions[0];
+    }
+
+    if (
+      conditions.length > 1
+    ) {
+      filter = {
+        $and:
+          conditions,
+      };
+    }
+
+    const pagination =
+      getPagination({
+        page,
+        limit,
+      });
+
+    const [
+      reviews,
+      total,
+    ] =
+      await Promise.all([
+        populateReview(
+          PerformanceReview
+            .find(filter)
+            .sort({
+              periodEnd: -1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        PerformanceReview
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      reviews,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
 
 export const getPerformanceReviewById =
@@ -134,9 +217,8 @@ export const getPerformanceReviewById =
     id
   ) => {
     const review =
-      await PerformanceReview.findById(
-        id
-      );
+      await PerformanceReview
+        .findById(id);
 
     if (!review) {
       return null;
@@ -149,20 +231,28 @@ export const getPerformanceReviewById =
       );
 
     if (!allowed) {
-      throw new Error(
-        "You do not have access to this performance review"
-      );
+      const error =
+        new Error(
+          "You do not have access to this performance review"
+        );
+
+      error.statusCode =
+        403;
+
+      throw error;
     }
 
     return populateReview(
-      PerformanceReview.findById(
-        id
-      )
+      PerformanceReview
+        .findById(id)
     );
   };
 
 export const getMyPerformanceReviews =
-  async (userId) => {
+  async (
+    userId,
+    query = {}
+  ) => {
     const employee =
       await Employee.findOne({
         user: userId,
@@ -174,19 +264,64 @@ export const getMyPerformanceReviews =
       );
     }
 
-    return populateReview(
-      PerformanceReview.find({
-        employee:
-          employee._id,
+    const filter = {
+      employee:
+        employee._id,
 
-        status: {
-          $in: [
-            PERFORMANCE_STATUS.SUBMITTED,
-            PERFORMANCE_STATUS.ACKNOWLEDGED,
-          ],
-        },
-      }).sort({
-        periodEnd: -1,
-      })
-    );
+      /*
+       * Draft reviews employee
+       * ko nahi dikhani.
+       */
+      status: {
+        $in: [
+          PERFORMANCE_STATUS
+            .SUBMITTED,
+
+          PERFORMANCE_STATUS
+            .ACKNOWLEDGED,
+        ],
+      },
+    };
+
+    const pagination =
+      getPagination(
+        query,
+        20
+      );
+
+    const [
+      reviews,
+      total,
+    ] =
+      await Promise.all([
+        populateReview(
+          PerformanceReview
+            .find(filter)
+            .sort({
+              periodEnd: -1,
+            })
+            .skip(
+              pagination.skip
+            )
+            .limit(
+              pagination.limit
+            )
+        ),
+
+        PerformanceReview
+          .countDocuments(
+            filter
+          ),
+      ]);
+
+    return {
+      reviews,
+
+      pagination:
+        buildPagination(
+          pagination.page,
+          pagination.limit,
+          total
+        ),
+    };
   };
