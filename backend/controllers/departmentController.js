@@ -1,11 +1,9 @@
-import * as departmentService
-  from "../services/departmentService.js";
+import * as departmentService from "../services/departmentService.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/AppError.js";
 
-export const createDepartment = async (
-  req,
-  res
-) => {
-  try {
+export const createDepartment = asyncHandler(
+  async (req, res) => {
     const department =
       await departmentService.createDepartment(
         req.body
@@ -16,19 +14,11 @@ export const createDepartment = async (
       message: "Department created successfully",
       department,
     });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
   }
-};
+);
 
-export const getDepartments = async (
-  req,
-  res
-) => {
-  try {
+export const getDepartments = asyncHandler(
+  async (req, res) => {
     const departments =
       await departmentService.getDepartments();
 
@@ -37,48 +27,32 @@ export const getDepartments = async (
       count: departments.length,
       departments,
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
   }
-};
+);
 
-export const getDepartmentById = async (
-  req,
-  res
-) => {
-  try {
+export const getDepartmentById = asyncHandler(
+  async (req, res) => {
     const department =
       await departmentService.getDepartmentById(
         req.params.id
       );
 
     if (!department) {
-      return res.status(404).json({
-        success: false,
-        message: "Department not found",
-      });
+      throw new AppError(
+        "Department not found",
+        404
+      );
     }
 
     res.status(200).json({
       success: true,
       department,
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
   }
-};
+);
 
-export const updateDepartment = async (
-  req,
-  res
-) => {
-  try {
+export const updateDepartment = asyncHandler(
+  async (req, res) => {
     const department =
       await departmentService.updateDepartment(
         req.params.id,
@@ -86,10 +60,10 @@ export const updateDepartment = async (
       );
 
     if (!department) {
-      return res.status(404).json({
-        success: false,
-        message: "Department not found",
-      });
+      throw new AppError(
+        "Department not found",
+        404
+      );
     }
 
     res.status(200).json({
@@ -97,39 +71,26 @@ export const updateDepartment = async (
       message: "Department updated successfully",
       department,
     });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
   }
-};
+);
 
-export const deleteDepartment = async (
-  req,
-  res
-) => {
-  try {
+export const deleteDepartment = asyncHandler(
+  async (req, res) => {
     const department =
       await departmentService.deleteDepartment(
         req.params.id
       );
 
     if (!department) {
-      return res.status(404).json({
-        success: false,
-        message: "Department not found",
-      });
+      throw new AppError(
+        "Department not found",
+        404
+      );
     }
 
     res.status(200).json({
       success: true,
       message: "Department deleted successfully",
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
   }
-};
+);

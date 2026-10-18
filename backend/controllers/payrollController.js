@@ -94,7 +94,7 @@ export const getMyPayrolls =
       });
     }
   };
-  
+
 export const getPayrollById = async (
   req,
   res

@@ -144,4 +144,4 @@ export const updateDocumentDetails =
     await document.save();
 
     return document;
-  };
+  };  

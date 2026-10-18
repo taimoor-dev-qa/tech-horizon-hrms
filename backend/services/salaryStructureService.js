@@ -31,7 +31,7 @@ export const createSalaryStructure =
     if (
       data.currency &&
       data.currency.toUpperCase() !==
-        settings.currency
+      settings.currency
     ) {
       throw new Error(
         `Salary currency must match company currency (${settings.currency})`

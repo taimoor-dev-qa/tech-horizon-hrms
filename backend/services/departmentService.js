@@ -1,4 +1,5 @@
 import Department from "../models/Department.js";
+import AppError from "../utils/AppError.js";
 
 export const createDepartment = async (data) => {
   const existingDepartment = await Department.findOne({
@@ -9,8 +10,9 @@ export const createDepartment = async (data) => {
   });
 
   if (existingDepartment) {
-    throw new Error(
-      "Department name or code already exists"
+    throw new AppError(
+      "Department name or code already exists",
+      400
     );
   }
 
@@ -28,18 +30,11 @@ export const getDepartmentById = async (id) => {
     .populate("manager", "name email role");
 };
 
-export const updateDepartment = async (
-  id,
-  data
-) => {
-  return Department.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+export const updateDepartment = async (id, data) => {
+  return Department.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
 };
 
 export const deleteDepartment = async (id) => {
