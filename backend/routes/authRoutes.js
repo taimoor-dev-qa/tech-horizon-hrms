@@ -3,7 +3,6 @@ import express from "express";
 import {
   getMyProfile,
   loginUser,
-  registerUser,
 } from "../controllers/authController.js";
 
 import protect
@@ -14,16 +13,16 @@ import validateRequest
 
 import {
   loginSchema,
-  registerSchema,
 } from "../validators/authValidators.js";
 
 const router = express.Router();
 
-router.post(
-  "/register",
-  validateRequest(registerSchema),
-  registerUser
-);
+router.post("/register", (req, res) => {
+  res.status(410).json({
+    success: false,
+    message: "Public registration is no longer available",
+  });
+});
 
 router.post(
   "/login",

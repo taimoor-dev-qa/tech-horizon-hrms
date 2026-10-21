@@ -8,7 +8,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "indexes": "node scripts/createIndexes.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "bootstrap:admin": "node scripts/bootstrapSuperAdmin.js",
+    "test": "node --test"
   },
   "keywords": [
     "hrms",

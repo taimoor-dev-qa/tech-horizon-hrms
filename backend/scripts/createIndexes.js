@@ -51,6 +51,7 @@ import SalaryStructure
 
 import Timesheet
   from "../models/Timesheet.js";
+import User from "../models/User.js";
 
 const models = [
   Announcement,
@@ -69,6 +70,7 @@ const models = [
   Project,
   SalaryStructure,
   Timesheet,
+  User,
 ];
 
 const createIndexes =
