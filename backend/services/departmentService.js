@@ -1,5 +1,11 @@
 import Department from "../models/Department.js";
 import AppError from "../utils/AppError.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["name"], message: "Department name or code already exists" },
+  { fields: ["code"], message: "Department name or code already exists" },
+];
 
 export const createDepartment = async (data) => {
   const existingDepartment = await Department.findOne({
@@ -16,7 +22,11 @@ export const createDepartment = async (data) => {
     );
   }
 
-  return Department.create(data);
+  try {
+    return await Department.create(data);
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const getDepartments = async () => {
@@ -31,10 +41,14 @@ export const getDepartmentById = async (id) => {
 };
 
 export const updateDepartment = async (id, data) => {
-  return Department.findByIdAndUpdate(id, data, {
-    new: true,
-    runValidators: true,
-  });
+  try {
+    return await Department.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    });
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const deleteDepartment = async (id) => {

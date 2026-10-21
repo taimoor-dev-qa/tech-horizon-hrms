@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -39,9 +40,7 @@ const validateEmploymentEndDate = (
   employmentEndDate
 ) => {
   if (!employmentEndDate) {
-    throw new Error(
-      "Employment end date is required"
-    );
+    throw new AppError("Employment end date is required", 400);
   }
 
   const endDate =
@@ -57,9 +56,7 @@ const validateEmploymentEndDate = (
   if (
     endDate < joiningDate
   ) {
-    throw new Error(
-      "Employment end date cannot be before joining date"
-    );
+    throw new AppError("Employment end date cannot be before joining date", 400);
   }
 
   const today =
@@ -77,9 +74,7 @@ const validateEmploymentEndDate = (
   if (
     endDate > todayUtc
   ) {
-    throw new Error(
-      "Employment end date cannot be in the future"
-    );
+    throw new AppError("Employment end date cannot be in the future", 400);
   }
 
   return endDate;
@@ -102,9 +97,7 @@ export const setEmployeeStatus =
         status
       )
     ) {
-      throw new Error(
-        "Invalid employee status"
-      );
+      throw new AppError("Invalid employee status", 400);
     }
 
     const employeeId =
@@ -174,7 +167,6 @@ export const setEmployeeStatus =
     }
 
     return getEmployeeById(
-      actor,
       employeeId
     );
   };

@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 const roundMoney = (
   value
 ) => {
@@ -192,9 +193,7 @@ export const calculatePayroll =
     if (
       netSalary < 0
     ) {
-      throw new Error(
-        "Payroll deductions cannot exceed gross salary"
-      );
+      throw new AppError("Payroll deductions cannot exceed gross salary", 400);
     }
 
     return {

@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Interview from "../models/Interview.js";
 
 import ROLES from "../constants/roles.js";
@@ -22,16 +23,14 @@ export const completeInterview = async (
   );
 
   if (!interview) {
-    throw new Error("Interview not found");
+    throw new AppError("Interview not found", 400);
   }
 
   if (
     interview.status !==
     INTERVIEW_STATUS.SCHEDULED
   ) {
-    throw new Error(
-      "Interview is not awaiting completion"
-    );
+    throw new AppError("Interview is not awaiting completion", 400);
   }
 
   const isInterviewer =
@@ -44,15 +43,11 @@ export const completeInterview = async (
   ].includes(actor.role);
 
   if (!isInterviewer && !hasAdminAccess) {
-    throw new Error(
-      "You cannot review this interview"
-    );
+    throw new AppError("You cannot review this interview", 400);
   }
 
   if (!VALID_RESULTS.includes(data.result)) {
-    throw new Error(
-      "Result must be pass or fail"
-    );
+    throw new AppError("Result must be pass or fail", 400);
   }
 
   interview.status =

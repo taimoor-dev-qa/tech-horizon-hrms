@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -26,6 +27,14 @@ import {
   getLeaveYear,
   getLeaveYearRange,
 } from "./leavePolicyService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  {
+    fields: ["employee", "leaveType", "year"],
+    message: "Leave balance already exists",
+  },
+];
 
 export const getOrCreateBalance =
   async (
@@ -45,19 +54,9 @@ export const getOrCreateBalance =
       options.session = session;
     }
 
-    return LeaveBalance.findOneAndUpdate(
-      {
-        employee:
-          employeeId,
-
-        leaveType:
-          leaveType._id,
-
-        year,
-      },
-
-      {
-        $setOnInsert: {
+    try {
+      return await LeaveBalance.findOneAndUpdate(
+        {
           employee:
             employeeId,
 
@@ -65,16 +64,30 @@ export const getOrCreateBalance =
             leaveType._id,
 
           year,
-
-          allocatedDays:
-            leaveType.annualQuota,
-
-          usedDays: 0,
         },
-      },
 
-      options
-    );
+        {
+          $setOnInsert: {
+            employee:
+              employeeId,
+
+            leaveType:
+              leaveType._id,
+
+            year,
+
+            allocatedDays:
+              leaveType.annualQuota,
+
+            usedDays: 0,
+          },
+        },
+
+        options
+      );
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
   };
 
 export const validateRequestBalance =
@@ -166,9 +179,7 @@ export const validateRequestBalance =
     if (
       totalDays > available
     ) {
-      throw new Error(
-        `Insufficient leave balance. Available: ${available} day(s)`
-      );
+      throw new AppError(`Insufficient leave balance. Available: ${available} day(s)`, 400);
     }
   };
 
@@ -233,9 +244,7 @@ export const deductApprovedLeave =
       leave.totalDays >
       remaining
     ) {
-      throw new Error(
-        "Insufficient leave balance"
-      );
+      throw new AppError("Insufficient leave balance", 400);
     }
 
     balance.usedDays +=
@@ -259,9 +268,7 @@ export const getMyBalances =
       });
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     const settings =
@@ -292,9 +299,7 @@ export const getMyBalances =
         targetYear
       )
     ) {
-      throw new Error(
-        "Invalid leave year"
-      );
+      throw new AppError("Invalid leave year", 400);
     }
 
     const range =

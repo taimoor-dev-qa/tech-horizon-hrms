@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Department
   from "../models/Department.js";
 
@@ -40,9 +41,7 @@ export const validateOrganization =
       );
 
     if (!departmentRecord) {
-      throw new Error(
-        "Department not found"
-      );
+      throw new AppError("Department not found", 400);
     }
 
     const designationRecord =
@@ -54,9 +53,7 @@ export const validateOrganization =
       );
 
     if (!designationRecord) {
-      throw new Error(
-        "Designation not found"
-      );
+      throw new AppError("Designation not found", 400);
     }
 
     if (
@@ -64,9 +61,7 @@ export const validateOrganization =
         designationRecord.department
       ) !== String(department)
     ) {
-      throw new Error(
-        "Designation does not belong to selected department"
-      );
+      throw new AppError("Designation does not belong to selected department", 400);
     }
 
     if (team) {
@@ -77,9 +72,7 @@ export const validateOrganization =
         );
 
       if (!teamRecord) {
-        throw new Error(
-          "Team not found"
-        );
+        throw new AppError("Team not found", 400);
       }
 
       if (
@@ -87,9 +80,7 @@ export const validateOrganization =
           teamRecord.department
         ) !== String(department)
       ) {
-        throw new Error(
-          "Team does not belong to selected department"
-        );
+        throw new AppError("Team does not belong to selected department", 400);
       }
     }
   };
@@ -110,17 +101,13 @@ export const validateManager =
       );
 
     if (!manager) {
-      throw new Error(
-        "Manager not found"
-      );
+      throw new AppError("Manager not found", 400);
     }
 
     if (
       manager.role !== "manager"
     ) {
-      throw new Error(
-        "Selected user does not have manager role"
-      );
+      throw new AppError("Selected user does not have manager role", 400);
     }
   };
 
@@ -142,18 +129,14 @@ export const validateTeamLead =
       );
 
     if (!teamLead) {
-      throw new Error(
-        "Team lead not found"
-      );
+      throw new AppError("Team lead not found", 400);
     }
 
     if (
       teamLead.role !==
       "team_lead"
     ) {
-      throw new Error(
-        "Selected user does not have team lead role"
-      );
+      throw new AppError("Selected user does not have team lead role", 400);
     }
   };
 
@@ -173,14 +156,10 @@ export const validateShift =
       );
 
     if (!shift) {
-      throw new Error(
-        "Shift not found"
-      );
+      throw new AppError("Shift not found", 400);
     }
 
     if (!shift.isActive) {
-      throw new Error(
-        "Selected shift is inactive"
-      );
+      throw new AppError("Selected shift is inactive", 400);
     }
   };

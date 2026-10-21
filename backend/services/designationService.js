@@ -1,5 +1,12 @@
+import AppError from "../utils/AppError.js";
 import Department from "../models/Department.js";
 import Designation from "../models/Designation.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["code"], message: "Designation name or code already exists" },
+  { fields: ["name", "department"], message: "Designation name or code already exists" },
+];
 
 const validateDepartment = async (departmentId) => {
   const department = await Department.findById(
@@ -7,7 +14,7 @@ const validateDepartment = async (departmentId) => {
   );
 
   if (!department) {
-    throw new Error("Department not found");
+    throw new AppError("Department not found", 400);
   }
 
   return department;
@@ -30,12 +37,14 @@ export const createDesignation = async (data) => {
     });
 
   if (existingDesignation) {
-    throw new Error(
-      "Designation name or code already exists"
-    );
+    throw new AppError("Designation name or code already exists", 400);
   }
 
-  return Designation.create(data);
+  try {
+    return await Designation.create(data);
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const getDesignations = async () => {
@@ -59,14 +68,18 @@ export const updateDesignation = async (
     await validateDepartment(data.department);
   }
 
-  return Designation.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true,
-    }
-  ).populate("department", "name code");
+  try {
+    return await Designation.findByIdAndUpdate(
+      id,
+      data,
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).populate("department", "name code");
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const deleteDesignation = async (id) => {

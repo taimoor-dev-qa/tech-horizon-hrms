@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
   getCurrentDate,
 } from "./attendanceTimeService.js";
@@ -32,9 +33,7 @@ export const validatePayrollMonthPolicy =
       today.slice(0, 7);
 
     if (month > currentMonth) {
-      throw new Error(
-        "Future month payroll cannot be created"
-      );
+      throw new AppError("Future month payroll cannot be created", 400);
     }
 
     return policy;
@@ -54,9 +53,7 @@ export const validatePayrollGenerationDay =
       today.slice(0, 7);
 
     if (month > currentMonth) {
-      throw new Error(
-        "Future month payroll cannot be generated"
-      );
+      throw new AppError("Future month payroll cannot be generated", 400);
     }
 
     if (month < currentMonth) {
@@ -70,9 +67,7 @@ export const validatePayrollGenerationDay =
       currentDay <
       policy.payrollDay
     ) {
-      throw new Error(
-        `Payroll cannot be generated before day ${policy.payrollDay}`
-      );
+      throw new AppError(`Payroll cannot be generated before day ${policy.payrollDay}`, 400);
     }
 
     return policy;

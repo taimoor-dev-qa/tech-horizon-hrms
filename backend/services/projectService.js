@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Project
   from "../models/Project.js";
 
@@ -11,6 +12,11 @@ import {
   validateProjectCreationAccess,
   validateProjectManagementAccess,
 } from "./projectAccessService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["code"], message: "Project code already exists" },
+];
 
 export const createProject =
   async (
@@ -24,9 +30,7 @@ export const createProject =
       });
 
     if (existing) {
-      throw new Error(
-        "Project code already exists"
-      );
+      throw new AppError("Project code already exists", 400);
     }
 
     await validateProjectCreationAccess(
@@ -47,9 +51,13 @@ export const createProject =
       data.members || []
     );
 
-    return Project.create(
-      data
-    );
+    try {
+      return await Project.create(
+        data
+      );
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
   };
 
 export const updateProject =
@@ -103,9 +111,7 @@ export const updateProject =
           String(data.manager) !==
           String(currentManager)
         ) {
-          throw new Error(
-            "Manager cannot transfer project ownership"
-          );
+          throw new AppError("Manager cannot transfer project ownership", 400);
         }
       }
     }
@@ -121,7 +127,11 @@ export const updateProject =
       data
     );
 
-    await project.save();
+    try {
+      await project.save();
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
 
     return project;
   };

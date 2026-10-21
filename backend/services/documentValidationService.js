@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee from "../models/Employee.js";
 
 import {
@@ -13,9 +14,7 @@ export const getValidEmployee = async (
   );
 
   if (!employee) {
-    throw new Error(
-      "Employee not found"
-    );
+    throw new AppError("Employee not found", 400);
   }
 
   return employee;
@@ -29,9 +28,7 @@ export const validateDocumentData = (
       DOCUMENT_TYPES
     ).includes(data.type)
   ) {
-    throw new Error(
-      "Invalid document type"
-    );
+    throw new AppError("Invalid document type", 400);
   }
 
   if (
@@ -40,8 +37,6 @@ export const validateDocumentData = (
       DOCUMENT_VISIBILITY
     ).includes(data.visibility)
   ) {
-    throw new Error(
-      "Invalid document visibility"
-    );
+    throw new AppError("Invalid document visibility", 400);
   }
 };

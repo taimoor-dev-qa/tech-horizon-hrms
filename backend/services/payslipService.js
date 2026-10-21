@@ -1,4 +1,5 @@
 import Employee from "../models/Employee.js";
+import AppError from "../utils/AppError.js";
 import Payroll from "../models/Payroll.js";
 
 import {
@@ -14,8 +15,8 @@ export const getMyPayslip = async (
   });
 
   if (!employee) {
-    throw new Error(
-      "Employee profile not found"
+    throw new AppError(
+      "Employee profile not found", 404
     );
   }
 
@@ -55,8 +56,8 @@ export const getMyPayslip = async (
     );
 
   if (!payroll) {
-    throw new Error(
-      "Payslip not found"
+    throw new AppError(
+      "Payslip not found", 404
     );
   }
 

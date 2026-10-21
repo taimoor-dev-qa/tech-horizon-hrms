@@ -1,3 +1,5 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import {
   createJob as createService,
   deleteJob as deleteService,
@@ -9,150 +11,85 @@ import {
   getJobs as getJobsService,
 } from "../services/jobQueryService.js";
 
-export const createJob = async (
-  req,
-  res
-) => {
-  try {
-    const job = await createService(
-      req.body,
-      req.user._id
+export const createJob = asyncHandler(async (req, res) => {
+  const job = await createService(
+    req.body,
+    req.user._id
+  );
+
+  res.status(201).json({
+    success: true,
+    message: "Job created successfully",
+    job,
+  });
+});
+
+export const getJobs = asyncHandler(async (req, res) => {
+  const result =
+    await getJobsService(
+      req.user,
+      req.query
     );
 
-    res.status(201).json({
-      success: true,
-      message: "Job created successfully",
-      job,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
 
-export const getJobs =
-  async (
-    req,
-    res
-  ) => {
-    try {
-      const result =
-        await getJobsService(
-          req.user,
-          req.query
-        );
+    count:
+      result.jobs.length,
 
-      res.status(200).json({
-        success: true,
+    pagination:
+      result.pagination,
 
-        count:
-          result.jobs.length,
+    jobs:
+      result.jobs,
+  });
+});
 
-        pagination:
-          result.pagination,
-
-        jobs:
-          result.jobs,
-      });
-    } catch (error) {
-      res.status(
-        error.statusCode || 500
-      ).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
-
-export const getJobById = async (
-  req,
-  res
-) => {
-  try {
-    const job =
-      await getByIdService(
-        req.user,
-        req.params.id
-      );
-
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: "Job not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      job,
-    });
-  } catch (error) {
-    res.status(
-      error.statusCode || 400
-    ).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const updateJob = async (
-  req,
-  res
-) => {
-  try {
-    const job = await updateService(
-      req.params.id,
-      req.body
-    );
-
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: "Job not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Job updated successfully",
-      job,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const deleteJob = async (
-  req,
-  res
-) => {
-  try {
-    const job = await deleteService(
+export const getJobById = asyncHandler(async (req, res) => {
+  const job =
+    await getByIdService(
+      req.user,
       req.params.id
     );
 
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        message: "Job not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Job deleted successfully",
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!job) {
+    throw new AppError("Job not found", 404);
   }
-};
+
+  res.status(200).json({
+    success: true,
+    job,
+  });
+});
+
+export const updateJob = asyncHandler(async (req, res) => {
+  const job = await updateService(
+    req.params.id,
+    req.body
+  );
+
+  if (!job) {
+    throw new AppError("Job not found", 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Job updated successfully",
+    job,
+  });
+});
+
+export const deleteJob = asyncHandler(async (req, res) => {
+  const job = await deleteService(
+    req.params.id
+  );
+
+  if (!job) {
+    throw new AppError("Job not found", 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Job deleted successfully",
+  });
+});

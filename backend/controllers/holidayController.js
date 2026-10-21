@@ -1,108 +1,64 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import * as holidayService
   from "../services/holidayService.js";
 
-export const createHoliday = async (
-  req,
-  res
-) => {
-  try {
-    const holiday =
-      await holidayService.createHoliday(
-        req.body
-      );
+export const createHoliday = asyncHandler(async (req, res) => {
+  const holiday =
+    await holidayService.createHoliday(
+      req.body
+    );
 
-    res.status(201).json({
-      success: true,
-      message: "Holiday created successfully",
-      holiday,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  res.status(201).json({
+    success: true,
+    message: "Holiday created successfully",
+    holiday,
+  });
+});
+
+export const getHolidays = asyncHandler(async (req, res) => {
+  const holidays =
+    await holidayService.getHolidays(
+      req.query
+    );
+
+  res.status(200).json({
+    success: true,
+    count: holidays.length,
+    holidays,
+  });
+});
+
+export const updateHoliday = asyncHandler(async (req, res) => {
+  const holiday =
+    await holidayService.updateHoliday(
+      req.params.id,
+      req.body
+    );
+
+  if (!holiday) {
+    throw new AppError("Holiday not found", 404);
   }
-};
 
-export const getHolidays = async (
-  req,
-  res
-) => {
-  try {
-    const holidays =
-      await holidayService.getHolidays(
-        req.query
-      );
+  res.status(200).json({
+    success: true,
+    message: "Holiday updated successfully",
+    holiday,
+  });
+});
 
-    res.status(200).json({
-      success: true,
-      count: holidays.length,
-      holidays,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+export const deleteHoliday = asyncHandler(async (req, res) => {
+  const holiday =
+    await holidayService.deleteHoliday(
+      req.params.id
+    );
+
+  if (!holiday) {
+    throw new AppError("Holiday not found", 404);
   }
-};
 
-export const updateHoliday = async (
-  req,
-  res
-) => {
-  try {
-    const holiday =
-      await holidayService.updateHoliday(
-        req.params.id,
-        req.body
-      );
-
-    if (!holiday) {
-      return res.status(404).json({
-        success: false,
-        message: "Holiday not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Holiday updated successfully",
-      holiday,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const deleteHoliday = async (
-  req,
-  res
-) => {
-  try {
-    const holiday =
-      await holidayService.deleteHoliday(
-        req.params.id
-      );
-
-    if (!holiday) {
-      return res.status(404).json({
-        success: false,
-        message: "Holiday not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Holiday deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Holiday deleted successfully",
+  });
+});

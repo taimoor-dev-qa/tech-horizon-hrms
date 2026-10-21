@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Attendance
   from "../models/Attendance.js";
 
@@ -18,6 +19,14 @@ import {
 import {
   getRuntimeCompanySettings,
 } from "./companySettingsRuntimeService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  {
+    fields: ["employee", "attendanceDate"],
+    message: "You have already checked in today",
+  },
+];
 
 const getEmployee = async (
   userId
@@ -28,15 +37,11 @@ const getEmployee = async (
     }).populate("shift");
 
   if (!employee) {
-    throw new Error(
-      "Employee profile not found"
-    );
+    throw new AppError("Employee profile not found", 400);
   }
 
   if (!employee.shift) {
-    throw new Error(
-      "No shift assigned to employee"
-    );
+    throw new AppError("No shift assigned to employee", 400);
   }
 
   return employee;
@@ -63,9 +68,7 @@ export const checkIn = async (
     });
 
   if (existingAttendance) {
-    throw new Error(
-      "You have already checked in today"
-    );
+    throw new AppError("You have already checked in today", 400);
   }
 
   const checkInTime =
@@ -86,14 +89,18 @@ export const checkIn = async (
       lateMinutes
     );
 
-  return Attendance.create({
-    employee: employee._id,
-    shift: employee.shift._id,
-    attendanceDate,
-    checkIn: checkInTime,
-    lateMinutes,
-    status,
-  });
+  try {
+    return await Attendance.create({
+      employee: employee._id,
+      shift: employee.shift._id,
+      attendanceDate,
+      checkIn: checkInTime,
+      lateMinutes,
+      status,
+    });
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const checkOut = async (
@@ -117,15 +124,11 @@ export const checkOut = async (
     });
 
   if (!attendance) {
-    throw new Error(
-      "Please check in before checking out"
-    );
+    throw new AppError("Please check in before checking out", 400);
   }
 
   if (attendance.checkOut) {
-    throw new Error(
-      "You have already checked out today"
-    );
+    throw new AppError("You have already checked out today", 400);
   }
 
   const checkOutTime =
@@ -167,9 +170,7 @@ export const getMyAttendance = async (
     });
 
   if (!employee) {
-    throw new Error(
-      "Employee profile not found"
-    );
+    throw new AppError("Employee profile not found", 400);
   }
 
   return Attendance.find({

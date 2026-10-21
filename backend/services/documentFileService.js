@@ -134,7 +134,8 @@ export const getDownloadableDocument =
       await fs.access(
         absolutePath
       );
-    } catch {
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
       throw new AppError(
         "Stored document file not found",
         404

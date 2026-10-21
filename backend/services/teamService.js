@@ -1,6 +1,13 @@
+import AppError from "../utils/AppError.js";
 import Department from "../models/Department.js";
 import Team from "../models/Team.js";
 import User from "../models/User.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["code"], message: "Team name or code already exists" },
+  { fields: ["name", "department"], message: "Team name or code already exists" },
+];
 
 const validateDepartment = async (departmentId) => {
   const department = await Department.findById(
@@ -8,7 +15,7 @@ const validateDepartment = async (departmentId) => {
   );
 
   if (!department) {
-    throw new Error("Department not found");
+    throw new AppError("Department not found", 400);
   }
 
   return department;
@@ -22,15 +29,13 @@ const validateTeamLead = async (teamLeadId) => {
   const user = await User.findById(teamLeadId);
 
   if (!user) {
-    throw new Error("Team lead user not found");
+    throw new AppError("Team lead user not found", 400);
   }
 
   if (
     !["team_lead", "manager"].includes(user.role)
   ) {
-    throw new Error(
-      "Selected user must be a team lead or manager"
-    );
+    throw new AppError("Selected user must be a team lead or manager", 400);
   }
 
   return user;
@@ -53,12 +58,14 @@ export const createTeam = async (data) => {
   });
 
   if (existingTeam) {
-    throw new Error(
-      "Team name or code already exists"
-    );
+    throw new AppError("Team name or code already exists", 400);
   }
 
-  return Team.create(data);
+  try {
+    return await Team.create(data);
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const getTeams = async () => {
@@ -83,16 +90,20 @@ export const updateTeam = async (id, data) => {
     await validateTeamLead(data.teamLead);
   }
 
-  return Team.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true,
-    }
-  )
-    .populate("department", "name code")
-    .populate("teamLead", "name email role");
+  try {
+    return await Team.findByIdAndUpdate(
+      id,
+      data,
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+      .populate("department", "name code")
+      .populate("teamLead", "name email role");
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const deleteTeam = async (id) => {

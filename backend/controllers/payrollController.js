@@ -1,3 +1,5 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import {
   createPayroll as createService,
 } from "../services/payrollService.js";
@@ -8,117 +10,76 @@ import {
   getPayrolls as getPayrollsService,
 } from "../services/payrollQueryService.js";
 
-export const createPayroll = async (
-  req,
-  res
-) => {
-  try {
-    const payroll = await createService(
-      req.body,
-      req.user._id
+export const createPayroll = asyncHandler(async (req, res) => {
+  const payroll = await createService(
+    req.body,
+    req.user._id
+  );
+
+  res.status(201).json({
+    success: true,
+    message:
+      "Payroll created successfully",
+    payroll,
+  });
+});
+
+export const getPayrolls = asyncHandler(async (req, res) => {
+  const result =
+    await getPayrollsService(
+      req.query
     );
 
-    res.status(201).json({
-      success: true,
-      message:
-        "Payroll created successfully",
-      payroll,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
 
-export const getPayrolls =
-  async (req, res) => {
-    try {
-      const result =
-        await getPayrollsService(
-          req.query
-        );
+    count:
+      result
+        .payrolls
+        .length,
 
-      res.status(200).json({
-        success: true,
+    pagination:
+      result.pagination,
 
-        count:
-          result
-            .payrolls
-            .length,
+    payrolls:
+      result.payrolls,
+  });
+});
 
-        pagination:
-          result.pagination,
-
-        payrolls:
-          result.payrolls,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
-
-export const getMyPayrolls =
-  async (req, res) => {
-    try {
-      const result =
-        await getMyService(
-          req.user._id,
-          req.query
-        );
-
-      res.status(200).json({
-        success: true,
-
-        count:
-          result
-            .payrolls
-            .length,
-
-        pagination:
-          result.pagination,
-
-        payrolls:
-          result.payrolls,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
-
-export const getPayrollById = async (
-  req,
-  res
-) => {
-  try {
-    const payroll = await getByIdService(
-      req.params.id
+export const getMyPayrolls = asyncHandler(async (req, res) => {
+  const result =
+    await getMyService(
+      req.user._id,
+      req.query
     );
 
-    if (!payroll) {
-      return res.status(404).json({
-        success: false,
-        message: "Payroll not found",
-      });
-    }
+  res.status(200).json({
+    success: true,
 
-    res.status(200).json({
-      success: true,
-      payroll,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    count:
+      result
+        .payrolls
+        .length,
+
+    pagination:
+      result.pagination,
+
+    payrolls:
+      result.payrolls,
+  });
+});
+
+export const getPayrollById = asyncHandler(async (req, res) => {
+  const payroll = await getByIdService(
+    req.params.id
+  );
+
+  if (!payroll) {
+    throw new AppError("Payroll not found", 404);
   }
-};
+
+  res.status(200).json({
+    success: true,
+    payroll,
+  });
+});

@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -23,9 +24,7 @@ const validateDecision = (
       "reject",
     ].includes(decision)
   ) {
-    throw new Error(
-      "Decision must be approve or reject"
-    );
+    throw new AppError("Decision must be approve or reject", 400);
   }
 };
 
@@ -72,24 +71,18 @@ export const reviewTimesheet =
       ).populate("project");
 
     if (!timesheet) {
-      throw new Error(
-        "Timesheet not found"
-      );
+      throw new AppError("Timesheet not found", 400);
     }
 
     if (
       timesheet.status !==
       TIMESHEET_STATUS.PENDING
     ) {
-      throw new Error(
-        "Timesheet has already been reviewed"
-      );
+      throw new AppError("Timesheet has already been reviewed", 400);
     }
 
     if (!timesheet.project) {
-      throw new Error(
-        "Project not found"
-      );
+      throw new AppError("Project not found", 400);
     }
 
     const isSuperAdmin =
@@ -103,9 +96,7 @@ export const reviewTimesheet =
         });
 
       if (!manager) {
-        throw new Error(
-          "Manager employee profile not found"
-        );
+        throw new AppError("Manager employee profile not found", 400);
       }
 
       const isProjectManager =
@@ -116,9 +107,7 @@ export const reviewTimesheet =
         String(manager._id);
 
       if (!isProjectManager) {
-        throw new Error(
-          "Only the project manager can review this timesheet"
-        );
+        throw new AppError("Only the project manager can review this timesheet", 400);
       }
     }
 
@@ -163,9 +152,7 @@ export const getManagerPendingTimesheets =
       });
 
     if (!manager) {
-      throw new Error(
-        "Manager employee profile not found"
-      );
+      throw new AppError("Manager employee profile not found", 400);
     }
 
     const projects =

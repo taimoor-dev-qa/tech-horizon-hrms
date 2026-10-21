@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Attendance
   from "../models/Attendance.js";
 
@@ -11,6 +12,14 @@ import {
 import {
   getRuntimeCompanySettings,
 } from "./companySettingsRuntimeService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  {
+    fields: ["employee", "attendanceDate"],
+    message: "Attendance already exists for this employee and date",
+  },
+];
 
 const MANUAL_STATUSES = [
   ATTENDANCE_STATUS.PRESENT,
@@ -30,9 +39,7 @@ const validateManualAttendance =
       !settings.attendance
         .allowManualAttendance
     ) {
-      throw new Error(
-        "Manual attendance is disabled in company settings"
-      );
+      throw new AppError("Manual attendance is disabled in company settings", 400);
     }
   };
 
@@ -45,15 +52,11 @@ const getEmployee = async (
     ).populate("shift");
 
   if (!employee) {
-    throw new Error(
-      "Employee not found"
-    );
+    throw new AppError("Employee not found", 400);
   }
 
   if (!employee.shift) {
-    throw new Error(
-      "Employee does not have a shift assigned"
-    );
+    throw new AppError("Employee does not have a shift assigned", 400);
   }
 
   return employee;
@@ -73,9 +76,7 @@ export const markManualAttendance =
       !attendanceDate ||
       !status
     ) {
-      throw new Error(
-        "Employee, date and status are required"
-      );
+      throw new AppError("Employee, date and status are required", 400);
     }
 
     if (
@@ -83,32 +84,34 @@ export const markManualAttendance =
         status
       )
     ) {
-      throw new Error(
-        "Invalid attendance status"
-      );
+      throw new AppError("Invalid attendance status", 400);
     }
 
     const employee =
       await getEmployee(employeeId);
 
-    return Attendance.findOneAndUpdate(
-      {
-        employee: employee._id,
-        attendanceDate,
-      },
-      {
-        employee: employee._id,
-        shift: employee.shift._id,
-        attendanceDate,
-        status,
-        notes,
-      },
-      {
-        new: true,
-        upsert: true,
-        runValidators: true,
-      }
-    );
+    try {
+      return await Attendance.findOneAndUpdate(
+        {
+          employee: employee._id,
+          attendanceDate,
+        },
+        {
+          employee: employee._id,
+          shift: employee.shift._id,
+          attendanceDate,
+          status,
+          notes,
+        },
+        {
+          new: true,
+          upsert: true,
+          runValidators: true,
+        }
+      );
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
   };
 
 export const updateAttendanceStatus =
@@ -124,9 +127,7 @@ export const updateAttendanceStatus =
         data.status
       )
     ) {
-      throw new Error(
-        "Invalid attendance status"
-      );
+      throw new AppError("Invalid attendance status", 400);
     }
 
     return Attendance.findByIdAndUpdate(

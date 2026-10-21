@@ -1,10 +1,11 @@
 import Notification
   from "../models/Notification.js";
+import { buildPagination, getPagination } from "../utils/pagination.js";
 
 export const getMyNotifications =
   async (
     userId,
-    { unreadOnly } = {}
+    { unreadOnly, page, limit } = {}
   ) => {
     const filter = {
       recipient: userId,
@@ -16,10 +17,18 @@ export const getMyNotifications =
       filter.isRead = false;
     }
 
-    return Notification.find(filter)
-      .sort({
-        createdAt: -1,
-      });
+    const pagination = getPagination({ page, limit });
+    const [notifications, total] = await Promise.all([
+      Notification.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit),
+      Notification.countDocuments(filter),
+    ]);
+    return {
+      notifications,
+      pagination: buildPagination(pagination.page, pagination.limit, total),
+    };
   };
 
 export const markNotificationRead =

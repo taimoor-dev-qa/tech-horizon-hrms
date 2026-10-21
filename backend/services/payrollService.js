@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -24,6 +25,16 @@ import {
 import {
   validatePayrollMonthPolicy,
 } from "./payrollPolicyService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const payrollExistsError = () =>
+  Object.assign(
+    new AppError(
+      "Payroll already exists for this employee and month",
+      400
+    ),
+    { businessCode: "PAYROLL_EXISTS" }
+  );
 
 export const createPayroll =
   async (
@@ -45,9 +56,7 @@ export const createPayroll =
         );
 
     if (!employee) {
-      throw new Error(
-        "Employee not found"
-      );
+      throw new AppError("Employee not found", 400);
     }
 
     const existing =
@@ -60,9 +69,7 @@ export const createPayroll =
       });
 
     if (existing) {
-      throw new Error(
-        "Payroll already exists for this employee and month"
-      );
+      throw payrollExistsError();
     }
 
     const payrollPeriod =
@@ -82,9 +89,7 @@ export const createPayroll =
       );
 
     if (!salary) {
-      throw new Error(
-        "Salary structure does not cover employee's payable payroll period"
-      );
+      throw new AppError("Salary structure does not cover employee's payable payroll period", 400);
     }
 
     const attendance =
@@ -98,18 +103,14 @@ export const createPayroll =
       !attendance
         .totalWorkingDays
     ) {
-      throw new Error(
-        "Selected payroll month has no working days"
-      );
+      throw new AppError("Selected payroll month has no working days", 400);
     }
 
     if (
       !attendance
         .payableWorkingDays
     ) {
-      throw new Error(
-        "Employee has no payable working days in selected month"
-      );
+      throw new AppError("Employee has no payable working days in selected month", 400);
     }
 
     const prorationFactor =
@@ -176,90 +177,105 @@ export const createPayroll =
             .otherDeduction,
       });
 
-    return Payroll.create({
-      employee:
-        employee._id,
+    try {
+      return await Payroll.create({
+        employee:
+          employee._id,
 
-      salaryStructure:
-        salary._id,
+        salaryStructure:
+          salary._id,
 
-      month:
-        data.month,
+        month:
+          data.month,
 
-      basicSalary:
-        calculation
-          .basicSalary,
+        basicSalary:
+          calculation
+            .basicSalary,
 
-      allowances:
-        calculation
-          .allowances,
+        allowances:
+          calculation
+            .allowances,
 
-      workingDays:
-        attendance
-          .totalWorkingDays,
+        workingDays:
+          attendance
+            .totalWorkingDays,
 
-      payableWorkingDays:
-        attendance
-          .payableWorkingDays,
+        payableWorkingDays:
+          attendance
+            .payableWorkingDays,
 
-      prorationFactor:
-        Number(
-          prorationFactor
-            .toFixed(6)
-        ),
+        prorationFactor:
+          Number(
+            prorationFactor
+              .toFixed(6)
+          ),
 
-      payrollPeriodStart:
-        payrollPeriod
-          .periodStart,
+        payrollPeriodStart:
+          payrollPeriod
+            .periodStart,
 
-      payrollPeriodEnd:
-        payrollPeriod
-          .periodEnd,
+        payrollPeriodEnd:
+          payrollPeriod
+            .periodEnd,
 
-      absentDays:
-        attendance
-          .absentDays,
+        absentDays:
+          attendance
+            .absentDays,
 
-      halfDays:
-        attendance
-          .halfDays,
+        halfDays:
+          attendance
+            .halfDays,
 
-      unpaidLeaveDays:
-        attendance
-          .unpaidLeaveDays,
+        unpaidLeaveDays:
+          attendance
+            .unpaidLeaveDays,
 
-      overtimeHours,
+        overtimeHours,
 
-      overtimeAmount:
-        calculation
-          .overtimeAmount,
+        overtimeAmount:
+          calculation
+            .overtimeAmount,
 
-      bonus:
-        Number(
-          data.bonus ||
-          0
-        ),
+        bonus:
+          Number(
+            data.bonus ||
+            0
+          ),
 
-      deductions:
-        calculation
-          .deductions,
+        deductions:
+          calculation
+            .deductions,
 
-      grossSalary:
-        calculation
-          .grossSalary,
+        grossSalary:
+          calculation
+            .grossSalary,
 
-      totalDeductions:
-        calculation
-          .totalDeductions,
+        totalDeductions:
+          calculation
+            .totalDeductions,
 
-      netSalary:
-        calculation
-          .netSalary,
+        netSalary:
+          calculation
+            .netSalary,
 
-      currency:
-        policy.currency,
+        currency:
+          policy.currency,
 
-      generatedBy:
-        userId,
-    });
+        generatedBy:
+          userId,
+      });
+    } catch (error) {
+      const mapped = mapDuplicateKeyError(
+        error,
+        [
+          {
+            fields: ["employee", "month"],
+            message: "Payroll already exists for this employee and month",
+            businessCode: "PAYROLL_EXISTS",
+          },
+        ]
+      );
+
+      throw mapped;
+    }
   };

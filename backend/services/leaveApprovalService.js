@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import LeaveRequest
   from "../models/LeaveRequest.js";
 
@@ -39,9 +40,7 @@ const validateDecision = (
       "reject",
     ].includes(decision)
   ) {
-    throw new Error(
-      "Decision must be approve or reject"
-    );
+    throw new AppError("Decision must be approve or reject", 400);
   }
 };
 
@@ -129,9 +128,7 @@ export const managerDecision =
               );
 
           if (!currentLeave) {
-            throw new Error(
-              "Leave request not found"
-            );
+            throw new AppError("Leave request not found", 400);
           }
 
           if (
@@ -139,9 +136,7 @@ export const managerDecision =
             LEAVE_STATUS
               .PENDING_MANAGER
           ) {
-            throw new Error(
-              "Leave is not pending manager approval"
-            );
+            throw new AppError("Leave is not pending manager approval", 400);
           }
 
           const isSuperAdmin =
@@ -160,9 +155,7 @@ export const managerDecision =
             !isSuperAdmin &&
             !isAssignedManager
           ) {
-            throw new Error(
-              "You are not this employee's manager"
-            );
+            throw new AppError("You are not this employee's manager", 400);
           }
 
           currentLeave
@@ -294,9 +287,7 @@ export const hrDecision =
               );
 
           if (!currentLeave) {
-            throw new Error(
-              "Leave request not found"
-            );
+            throw new AppError("Leave request not found", 400);
           }
 
           if (
@@ -304,9 +295,7 @@ export const hrDecision =
             LEAVE_STATUS
               .PENDING_HR
           ) {
-            throw new Error(
-              "Leave is not pending HR approval"
-            );
+            throw new AppError("Leave is not pending HR approval", 400);
           }
 
           currentLeave.hrComment =

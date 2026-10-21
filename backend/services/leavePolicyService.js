@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
   LEAVE_STATUS,
 } from "../constants/leave.js";
@@ -80,9 +81,7 @@ export const validateLeaveRequestPolicy =
       !policy.allowPastDateRequest &&
       startDate < today
     ) {
-      throw new Error(
-        "Past date leave requests are not allowed"
-      );
+      throw new AppError("Past date leave requests are not allowed", 400);
     }
 
     const startLeaveYear =
@@ -101,9 +100,7 @@ export const validateLeaveRequestPolicy =
       startLeaveYear !==
       endLeaveYear
     ) {
-      throw new Error(
-        "Leave request cannot span multiple leave years"
-      );
+      throw new AppError("Leave request cannot span multiple leave years", 400);
     }
 
     return {
@@ -128,9 +125,7 @@ export const resolveInitialLeaveStatus = (
       return LEAVE_STATUS.PENDING_HR;
     }
 
-    throw new Error(
-      "Manager approval is required but no manager is assigned to this employee"
-    );
+    throw new AppError("Manager approval is required but no manager is assigned to this employee", 400);
   }
 
   if (policy.hrApprovalRequired) {

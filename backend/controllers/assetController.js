@@ -1,3 +1,5 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import {
   createAsset as createService,
   deleteAsset as deleteService,
@@ -10,169 +12,102 @@ import {
   getMyAssets as getMyAssetsService,
 } from "../services/assetQueryService.js";
 
-export const createAsset = async (
-  req,
-  res
-) => {
-  try {
-    const asset = await createService(
-      req.body
+export const createAsset = asyncHandler(async (req, res) => {
+  const asset = await createService(
+    req.body
+  );
+
+  res.status(201).json({
+    success: true,
+    message: "Asset created successfully",
+    asset,
+  });
+});
+
+export const getAssets = asyncHandler(async (req, res) => {
+  const result =
+    await getAssetsService(
+      req.query
     );
 
-    res.status(201).json({
-      success: true,
-      message: "Asset created successfully",
-      asset,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
 
-export const getAssets =
-  async (req, res) => {
-    try {
-      const result =
-        await getAssetsService(
-          req.query
-        );
+    count:
+      result.assets.length,
 
-      res.status(200).json({
-        success: true,
+    pagination:
+      result.pagination,
 
-        count:
-          result.assets.length,
+    assets:
+      result.assets,
+  });
+});
 
-        pagination:
-          result.pagination,
-
-        assets:
-          result.assets,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
-
-export const getMyAssets =
-  async (req, res) => {
-    try {
-      const result =
-        await getMyAssetsService(
-          req.user._id,
-          req.query
-        );
-
-      res.status(200).json({
-        success: true,
-
-        count:
-          result.assets.length,
-
-        pagination:
-          result.pagination,
-
-        assets:
-          result.assets,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
-
-export const getAssetById = async (
-  req,
-  res
-) => {
-  try {
-    const asset = await getByIdService(
-      req.params.id
+export const getMyAssets = asyncHandler(async (req, res) => {
+  const result =
+    await getMyAssetsService(
+      req.user._id,
+      req.query
     );
 
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        message: "Asset not found",
-      });
-    }
+  res.status(200).json({
+    success: true,
 
-    res.status(200).json({
-      success: true,
-      asset,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    count:
+      result.assets.length,
+
+    pagination:
+      result.pagination,
+
+    assets:
+      result.assets,
+  });
+});
+
+export const getAssetById = asyncHandler(async (req, res) => {
+  const asset = await getByIdService(
+    req.params.id
+  );
+
+  if (!asset) {
+    throw new AppError("Asset not found", 404);
   }
-};
 
-export const updateAsset = async (
-  req,
-  res
-) => {
-  try {
-    const asset = await updateService(
-      req.params.id,
-      req.body
-    );
+  res.status(200).json({
+    success: true,
+    asset,
+  });
+});
 
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        message: "Asset not found",
-      });
-    }
+export const updateAsset = asyncHandler(async (req, res) => {
+  const asset = await updateService(
+    req.params.id,
+    req.body
+  );
 
-    res.status(200).json({
-      success: true,
-      message: "Asset updated successfully",
-      asset,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!asset) {
+    throw new AppError("Asset not found", 404);
   }
-};
 
-export const deleteAsset = async (
-  req,
-  res
-) => {
-  try {
-    const asset = await deleteService(
-      req.params.id
-    );
+  res.status(200).json({
+    success: true,
+    message: "Asset updated successfully",
+    asset,
+  });
+});
 
-    if (!asset) {
-      return res.status(404).json({
-        success: false,
-        message: "Asset not found",
-      });
-    }
+export const deleteAsset = asyncHandler(async (req, res) => {
+  const asset = await deleteService(
+    req.params.id
+  );
 
-    res.status(200).json({
-      success: true,
-      message: "Asset deleted successfully",
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!asset) {
+    throw new AppError("Asset not found", 404);
   }
-};
+
+  res.status(200).json({
+    success: true,
+    message: "Asset deleted successfully",
+  });
+});

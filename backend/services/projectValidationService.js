@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee from "../models/Employee.js";
 
 const validateEmployee = async (
@@ -9,7 +10,7 @@ const validateEmployee = async (
   );
 
   if (!employee) {
-    throw new Error(`${label} not found`);
+    throw new AppError(`${label} not found`, 400);
   }
 
   return employee;
@@ -30,9 +31,7 @@ export const validateProjectManager = async (
       employee.user?.role
     )
   ) {
-    throw new Error(
-      "Project manager must have manager or team lead role"
-    );
+    throw new AppError("Project manager must have manager or team lead role", 400);
   }
 };
 
@@ -44,9 +43,7 @@ export const validateProjectMembers = async (
   ];
 
   if (uniqueMembers.length !== members.length) {
-    throw new Error(
-      "Duplicate project members are not allowed"
-    );
+    throw new AppError("Duplicate project members are not allowed", 400);
   }
 
   const count = await Employee.countDocuments({
@@ -54,9 +51,7 @@ export const validateProjectMembers = async (
   });
 
   if (count !== uniqueMembers.length) {
-    throw new Error(
-      "One or more project members were not found"
-    );
+    throw new AppError("One or more project members were not found", 400);
   }
 };
 
@@ -76,12 +71,10 @@ export const validateProjectDates = (
     Number.isNaN(start.getTime()) ||
     Number.isNaN(end.getTime())
   ) {
-    throw new Error("Invalid project dates");
+    throw new AppError("Invalid project dates", 400);
   }
 
   if (start > end) {
-    throw new Error(
-      "Project deadline cannot be before start date"
-    );
+    throw new AppError("Project deadline cannot be before start date", 400);
   }
 };

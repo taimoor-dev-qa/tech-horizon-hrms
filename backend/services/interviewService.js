@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
   notifyInterviewCancelled,
   notifyInterviewScheduled,
@@ -109,9 +110,7 @@ export const updateInterview = async (
     interview.status !==
     INTERVIEW_STATUS.SCHEDULED
   ) {
-    throw new Error(
-      "Only scheduled interviews can be edited"
-    );
+    throw new AppError("Only scheduled interviews can be edited", 400);
   }
 
   if (data.interviewer) {
@@ -157,9 +156,7 @@ export const cancelInterview = async (id) => {
     interview.status !==
     INTERVIEW_STATUS.SCHEDULED
   ) {
-    throw new Error(
-      "Only scheduled interviews can be cancelled"
-    );
+    throw new AppError("Only scheduled interviews can be cancelled", 400);
   }
 
   interview.status =

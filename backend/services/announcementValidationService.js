@@ -7,6 +7,8 @@ import {
   ANNOUNCEMENT_AUDIENCE,
 } from "../constants/announcement.js";
 
+import AppError from "../utils/AppError.js";
+
 export const validateAnnouncementTarget =
   async (data) => {
     if (
@@ -14,8 +16,9 @@ export const validateAnnouncementTarget =
       ANNOUNCEMENT_AUDIENCE.DEPARTMENT
     ) {
       if (!data.department) {
-        throw new Error(
-          "Department is required"
+        throw new AppError(
+          "Department is required",
+          400
         );
       }
 
@@ -25,8 +28,9 @@ export const validateAnnouncementTarget =
         );
 
       if (!department) {
-        throw new Error(
-          "Department not found"
+        throw new AppError(
+          "Department not found",
+          400
         );
       }
     }
@@ -36,8 +40,9 @@ export const validateAnnouncementTarget =
       ANNOUNCEMENT_AUDIENCE.TEAM
     ) {
       if (!data.team) {
-        throw new Error(
-          "Team is required"
+        throw new AppError(
+          "Team is required",
+          400
         );
       }
 
@@ -46,7 +51,7 @@ export const validateAnnouncementTarget =
       );
 
       if (!team) {
-        throw new Error("Team not found");
+        throw new AppError("Team not found", 400);
       }
     }
 
@@ -58,8 +63,9 @@ export const validateAnnouncementTarget =
         !Array.isArray(data.roles) ||
         !data.roles.length
       ) {
-        throw new Error(
-          "At least one role is required"
+        throw new AppError(
+          "At least one role is required",
+          400
         );
       }
 
@@ -72,8 +78,9 @@ export const validateAnnouncementTarget =
       );
 
       if (invalidRole) {
-        throw new Error(
-          `Invalid role: ${invalidRole}`
+        throw new AppError(
+          `Invalid role: ${invalidRole}`,
+          400
         );
       }
     }
@@ -92,8 +99,9 @@ export const validateExpiry = (
     Number.isNaN(expiry.getTime()) ||
     expiry <= new Date()
   ) {
-    throw new Error(
-      "Expiry date must be in the future"
+    throw new AppError(
+      "Expiry date must be in the future",
+      400
     );
   }
 };

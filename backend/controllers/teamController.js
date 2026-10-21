@@ -1,115 +1,73 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import * as teamService
   from "../services/teamService.js";
 
-export const createTeam = async (req, res) => {
-  try {
-    const team = await teamService.createTeam(
-      req.body
-    );
+export const createTeam = asyncHandler(async (req, res) => {
+  const team = await teamService.createTeam(
+    req.body
+  );
 
-    res.status(201).json({
-      success: true,
-      message: "Team created successfully",
-      team,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  res.status(201).json({
+    success: true,
+    message: "Team created successfully",
+    team,
+  });
+});
+
+export const getTeams = asyncHandler(async (req, res) => {
+  const teams = await teamService.getTeams();
+
+  res.status(200).json({
+    success: true,
+    count: teams.length,
+    teams,
+  });
+});
+
+export const getTeamById = asyncHandler(async (req, res) => {
+  const team = await teamService.getTeamById(
+    req.params.id
+  );
+
+  if (!team) {
+    throw new AppError("Team not found", 404);
   }
-};
 
-export const getTeams = async (req, res) => {
-  try {
-    const teams = await teamService.getTeams();
+  res.status(200).json({
+    success: true,
+    team,
+  });
+});
 
-    res.status(200).json({
-      success: true,
-      count: teams.length,
-      teams,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+export const updateTeam = asyncHandler(async (req, res) => {
+  const team = await teamService.updateTeam(
+    req.params.id,
+    req.body
+  );
+
+  if (!team) {
+    throw new AppError("Team not found", 404);
   }
-};
 
-export const getTeamById = async (req, res) => {
-  try {
-    const team = await teamService.getTeamById(
-      req.params.id
-    );
+  res.status(200).json({
+    success: true,
+    message: "Team updated successfully",
+    team,
+  });
+});
 
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: "Team not found",
-      });
-    }
+export const deleteTeam = asyncHandler(async (req, res) => {
+  const team = await teamService.deleteTeam(
+    req.params.id
+  );
 
-    res.status(200).json({
-      success: true,
-      team,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  if (!team) {
+    throw new AppError("Team not found", 404);
   }
-};
 
-export const updateTeam = async (req, res) => {
-  try {
-    const team = await teamService.updateTeam(
-      req.params.id,
-      req.body
-    );
-
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: "Team not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Team updated successfully",
-      team,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const deleteTeam = async (req, res) => {
-  try {
-    const team = await teamService.deleteTeam(
-      req.params.id
-    );
-
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: "Team not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Team deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Team deleted successfully",
+  });
+});

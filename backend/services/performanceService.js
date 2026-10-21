@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import PerformanceReview
   from "../models/PerformanceReview.js";
 
@@ -11,13 +12,19 @@ import {
   validateReviewerAccess,
   validateReviewDates,
 } from "./performanceValidationService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  {
+    fields: ["employee", "periodStart", "periodEnd"],
+    message: "Performance review already exists for this period",
+  },
+];
 
 export const createPerformanceReview =
   async (actor, data) => {
     if (!data.ratings) {
-      throw new Error(
-        "Performance ratings are required"
-      );
+      throw new AppError("Performance ratings are required", 400);
     }
 
     const employee = await getValidEmployee(
@@ -42,20 +49,22 @@ export const createPerformanceReview =
       });
 
     if (existing) {
-      throw new Error(
-        "Performance review already exists for this period"
-      );
+      throw new AppError("Performance review already exists for this period", 400);
     }
 
     const overallScore =
       calculateOverallScore(data.ratings);
 
-    return PerformanceReview.create({
-      ...data,
-      employee: employee._id,
-      reviewer: actor._id,
-      overallScore,
-    });
+    try {
+      return await PerformanceReview.create({
+        ...data,
+        employee: employee._id,
+        reviewer: actor._id,
+        overallScore,
+      });
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
   };
 
 export const updatePerformanceReview =
@@ -71,9 +80,7 @@ export const updatePerformanceReview =
       review.status !==
       PERFORMANCE_STATUS.DRAFT
     ) {
-      throw new Error(
-        "Only draft reviews can be edited"
-      );
+      throw new AppError("Only draft reviews can be edited", 400);
     }
 
     const employee = await getValidEmployee(
@@ -92,9 +99,7 @@ export const updatePerformanceReview =
         actor.role
       )
     ) {
-      throw new Error(
-        "Only the review creator can edit this review"
-      );
+      throw new AppError("Only the review creator can edit this review", 400);
     }
 
     const periodStart =
@@ -132,7 +137,11 @@ export const updatePerformanceReview =
       }
     });
 
-    await review.save();
+    try {
+      await review.save();
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
 
     return review;
   };

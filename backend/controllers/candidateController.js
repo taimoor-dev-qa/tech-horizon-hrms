@@ -9,149 +9,71 @@ import {
   getCandidates as getCandidatesService,
 } from "../services/candidateQueryService.js";
 
-export const createCandidate = async (
-  req,
-  res
-) => {
-  try {
-    const candidate =
-      await createService(req.body);
+import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/AppError.js";
 
-    res.status(201).json({
-      success: true,
-      message:
-        "Candidate created successfully",
-      candidate,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+export const createCandidate = asyncHandler(async (req, res) => {
+  const candidate = await createService(req.body);
+
+  res.status(201).json({
+    success: true,
+    message: "Candidate created successfully",
+    candidate,
+  });
+});
+
+export const getCandidates = asyncHandler(async (req, res) => {
+  const result = await getCandidatesService(req.query);
+
+  res.status(200).json({
+    success: true,
+    count: result.candidates.length,
+    pagination: result.pagination,
+    candidates: result.candidates,
+  });
+});
+
+export const getCandidateById = asyncHandler(async (req, res) => {
+  const candidate = await getByIdService(req.params.id);
+
+  if (!candidate) {
+    throw new AppError("Candidate not found", 404);
   }
-};
 
-export const getCandidates =
-  async (req, res) => {
-    try {
-      const result =
-        await getCandidatesService(
-          req.query
-        );
+  res.status(200).json({
+    success: true,
+    candidate,
+  });
+});
 
-      res.status(200).json({
-        success: true,
+export const updateCandidate = asyncHandler(async (req, res) => {
+  const candidate = await updateService(req.params.id, req.body);
 
-        count:
-          result
-            .candidates
-            .length,
-
-        pagination:
-          result.pagination,
-
-        candidates:
-          result.candidates,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
-
-export const getCandidateById = async (
-  req,
-  res
-) => {
-  try {
-    const candidate =
-      await getByIdService(
-        req.params.id
-      );
-
-    if (!candidate) {
-      return res.status(404).json({
-        success: false,
-        message: "Candidate not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      candidate,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!candidate) {
+    throw new AppError("Candidate not found", 404);
   }
-};
 
-export const updateCandidate = async (
-  req,
-  res
-) => {
-  try {
-    const candidate =
-      await updateService(
-        req.params.id,
-        req.body
-      );
+  res.status(200).json({
+    success: true,
+    message: "Candidate updated successfully",
+    candidate,
+  });
+});
 
-    if (!candidate) {
-      return res.status(404).json({
-        success: false,
-        message: "Candidate not found",
-      });
-    }
+export const changeCandidateStatus = asyncHandler(async (req, res) => {
+  const candidate = await statusService(
+    req.params.id,
+    req.body.status,
+    req.body.notes
+  );
 
-    res.status(200).json({
-      success: true,
-      message:
-        "Candidate updated successfully",
-      candidate,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!candidate) {
+    throw new AppError("Candidate not found", 404);
   }
-};
 
-export const changeCandidateStatus = async (
-  req,
-  res
-) => {
-  try {
-    const candidate =
-      await statusService(
-        req.params.id,
-        req.body.status,
-        req.body.notes
-      );
-
-    if (!candidate) {
-      return res.status(404).json({
-        success: false,
-        message: "Candidate not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message:
-        "Candidate status updated",
-      candidate,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Candidate status updated",
+    candidate,
+  });
+});

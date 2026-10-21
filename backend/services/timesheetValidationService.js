@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee from "../models/Employee.js";
 import Project from "../models/Project.js";
 import Timesheet from "../models/Timesheet.js";
@@ -10,9 +11,7 @@ export const getEmployeeByUser = async (
   });
 
   if (!employee) {
-    throw new Error(
-      "Employee profile not found"
-    );
+    throw new AppError("Employee profile not found", 400);
   }
 
   return employee;
@@ -27,7 +26,7 @@ export const validateProjectAccess = async (
   );
 
   if (!project) {
-    throw new Error("Project not found");
+    throw new AppError("Project not found", 400);
   }
 
   const isManager =
@@ -40,9 +39,7 @@ export const validateProjectAccess = async (
   );
 
   if (!isManager && !isMember) {
-    throw new Error(
-      "Employee is not assigned to this project"
-    );
+    throw new AppError("Employee is not assigned to this project", 400);
   }
 
   return project;
@@ -56,16 +53,14 @@ export const validateWorkDate = (
   );
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error("Invalid work date");
+    throw new AppError("Invalid work date", 400);
   }
 
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
   if (date > today) {
-    throw new Error(
-      "Future timesheets are not allowed"
-    );
+    throw new AppError("Future timesheets are not allowed", 400);
   }
 };
 
@@ -100,8 +95,6 @@ export const validateDailyHours = async (
     existingHours + Number(newHours) >
     24
   ) {
-    throw new Error(
-      "Total daily timesheet hours cannot exceed 24"
-    );
+    throw new AppError("Total daily timesheet hours cannot exceed 24", 400);
   }
 };

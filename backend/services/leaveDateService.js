@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 const DAY_NAMES = [
   "sunday",
   "monday",
@@ -23,13 +24,11 @@ export const validateLeaveDates = (
     Number.isNaN(start.getTime()) ||
     Number.isNaN(end.getTime())
   ) {
-    throw new Error("Invalid leave date");
+    throw new AppError("Invalid leave date", 400);
   }
 
   if (start > end) {
-    throw new Error(
-      "Start date cannot be after end date"
-    );
+    throw new AppError("Start date cannot be after end date", 400);
   }
 };
 

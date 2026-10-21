@@ -1,133 +1,76 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import * as shiftService
   from "../services/shiftService.js";
 
-export const createShift = async (
-  req,
-  res
-) => {
-  try {
-    const shift =
-      await shiftService.createShift(req.body);
+export const createShift = asyncHandler(async (req, res) => {
+  const shift =
+    await shiftService.createShift(req.body);
 
-    res.status(201).json({
-      success: true,
-      message: "Shift created successfully",
-      shift,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  res.status(201).json({
+    success: true,
+    message: "Shift created successfully",
+    shift,
+  });
+});
+
+export const getShifts = asyncHandler(async (req, res) => {
+  const shifts =
+    await shiftService.getShifts();
+
+  res.status(200).json({
+    success: true,
+    count: shifts.length,
+    shifts,
+  });
+});
+
+export const getShiftById = asyncHandler(async (req, res) => {
+  const shift =
+    await shiftService.getShiftById(
+      req.params.id
+    );
+
+  if (!shift) {
+    throw new AppError("Shift not found", 404);
   }
-};
 
-export const getShifts = async (
-  req,
-  res
-) => {
-  try {
-    const shifts =
-      await shiftService.getShifts();
+  res.status(200).json({
+    success: true,
+    shift,
+  });
+});
 
-    res.status(200).json({
-      success: true,
-      count: shifts.length,
-      shifts,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+export const updateShift = asyncHandler(async (req, res) => {
+  const shift =
+    await shiftService.updateShift(
+      req.params.id,
+      req.body
+    );
+
+  if (!shift) {
+    throw new AppError("Shift not found", 404);
   }
-};
 
-export const getShiftById = async (
-  req,
-  res
-) => {
-  try {
-    const shift =
-      await shiftService.getShiftById(
-        req.params.id
-      );
+  res.status(200).json({
+    success: true,
+    message: "Shift updated successfully",
+    shift,
+  });
+});
 
-    if (!shift) {
-      return res.status(404).json({
-        success: false,
-        message: "Shift not found",
-      });
-    }
+export const deleteShift = asyncHandler(async (req, res) => {
+  const shift =
+    await shiftService.deleteShift(
+      req.params.id
+    );
 
-    res.status(200).json({
-      success: true,
-      shift,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  if (!shift) {
+    throw new AppError("Shift not found", 404);
   }
-};
 
-export const updateShift = async (
-  req,
-  res
-) => {
-  try {
-    const shift =
-      await shiftService.updateShift(
-        req.params.id,
-        req.body
-      );
-
-    if (!shift) {
-      return res.status(404).json({
-        success: false,
-        message: "Shift not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Shift updated successfully",
-      shift,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const deleteShift = async (
-  req,
-  res
-) => {
-  try {
-    const shift =
-      await shiftService.deleteShift(
-        req.params.id
-      );
-
-    if (!shift) {
-      return res.status(404).json({
-        success: false,
-        message: "Shift not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Shift deleted successfully",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Shift deleted successfully",
+  });
+});

@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee from "../models/Employee.js";
 
 const monthPattern =
@@ -7,9 +8,7 @@ export const validatePayrollMonth = (
   month
 ) => {
   if (!monthPattern.test(month || "")) {
-    throw new Error(
-      "Payroll month must use YYYY-MM format"
-    );
+    throw new AppError("Payroll month must use YYYY-MM format", 400);
   }
 };
 
@@ -21,7 +20,7 @@ export const getValidEmployee = async (
   );
 
   if (!employee) {
-    throw new Error("Employee not found");
+    throw new AppError("Employee not found", 400);
   }
 
   return employee;
@@ -36,9 +35,7 @@ export const validateSalaryDates = (
   );
 
   if (Number.isNaN(start.getTime())) {
-    throw new Error(
-      "Invalid salary effective date"
-    );
+    throw new AppError("Invalid salary effective date", 400);
   }
 
   if (!effectiveTo) {
@@ -53,8 +50,6 @@ export const validateSalaryDates = (
     Number.isNaN(end.getTime()) ||
     end < start
   ) {
-    throw new Error(
-      "Invalid salary effective date range"
-    );
+    throw new AppError("Invalid salary effective date range", 400);
   }
 };

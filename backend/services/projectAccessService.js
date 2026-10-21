@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -108,9 +109,7 @@ export const validateProjectManagementAccess =
       await getActorEmployee(actor);
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     const isProjectManager =
@@ -118,9 +117,7 @@ export const validateProjectManagementAccess =
       String(employee._id);
 
     if (!isProjectManager) {
-      throw new Error(
-        "You can only manage projects assigned to you"
-      );
+      throw new AppError("You can only manage projects assigned to you", 400);
     }
 
     return true;
@@ -141,18 +138,14 @@ export const validateProjectCreationAccess =
       await getActorEmployee(actor);
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     if (
       String(employee._id) !==
       String(managerId)
     ) {
-      throw new Error(
-        "Manager can only create a project assigned to themselves"
-      );
+      throw new AppError("Manager can only create a project assigned to themselves", 400);
     }
 
     return true;

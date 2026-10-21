@@ -5,18 +5,44 @@ import {
     CANDIDATE_STATUS,
 } from "../constants/recruitment.js";
 
+import AppError from "../utils/AppError.js";
+
+const isCandidateEmailDuplicate = (error) => {
+    if (error?.code !== 11000) {
+        return false;
+    }
+
+    const fields = error.keyPattern ?? error.keyValue;
+    return fields &&
+        Object.keys(fields).length === 2 &&
+        Object.hasOwn(fields, "job") &&
+        Object.hasOwn(fields, "email");
+};
+
+const rethrowCandidateWriteError = (error) => {
+    if (isCandidateEmailDuplicate(error)) {
+        throw new AppError(
+            "Candidate already exists for this job",
+            400
+        );
+    }
+
+    throw error;
+};
+
 export const createCandidate = async (
     data
 ) => {
     const job = await Job.findById(data.job);
 
     if (!job) {
-        throw new Error("Job not found");
+        throw new AppError("Job not found", 400);
     }
 
     if (job.status !== "open") {
-        throw new Error(
-            "Candidate can only be added to an open job"
+        throw new AppError(
+            "Candidate can only be added to an open job",
+            400
         );
     }
 
@@ -27,12 +53,17 @@ export const createCandidate = async (
         });
 
     if (existing) {
-        throw new Error(
-            "Candidate already exists for this job"
+        throw new AppError(
+            "Candidate already exists for this job",
+            400
         );
     }
 
-    return Candidate.create(data);
+    try {
+        return await Candidate.create(data);
+    } catch (error) {
+        rethrowCandidateWriteError(error);
+    }
 };
 
 export const updateCandidateStatus = async (
@@ -45,14 +76,16 @@ export const updateCandidateStatus = async (
     );
 
     if (!validStatuses.includes(status)) {
-        throw new Error(
-            "Invalid candidate status"
+        throw new AppError(
+            "Invalid candidate status",
+            400
         );
 
     }
     if (status === CANDIDATE_STATUS.HIRED) {
-        throw new Error(
-            "Use the candidate hire endpoint to hire a candidate"
+        throw new AppError(
+            "Use the candidate hire endpoint to hire a candidate",
+            400
         );
     }
 
@@ -73,12 +106,16 @@ export const updateCandidate = async (
     id,
     data
 ) => {
-    return Candidate.findByIdAndUpdate(
-        id,
-        data,
-        {
-            new: true,
-            runValidators: true,
-        }
-    );
+    try {
+        return await Candidate.findByIdAndUpdate(
+            id,
+            data,
+            {
+                new: true,
+                runValidators: true,
+            }
+        );
+    } catch (error) {
+        rethrowCandidateWriteError(error);
+    }
 };

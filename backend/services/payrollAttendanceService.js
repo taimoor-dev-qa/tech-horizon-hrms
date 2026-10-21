@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Attendance
   from "../models/Attendance.js";
 
@@ -103,9 +104,7 @@ export const getPayrollAttendanceData =
     payrollPeriod
   ) => {
     if (!employee.shift) {
-      throw new Error(
-        "Employee shift is not assigned"
-      );
+      throw new AppError("Employee shift is not assigned", 400);
     }
 
     const monthlyWorkingDates =

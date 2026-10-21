@@ -1,65 +1,25 @@
-
+﻿import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import {
   deleteDocument as deleteService,
   getDownloadableDocument,
 } from "../services/documentFileService.js";
 
-export const downloadDocument =
-  async (
-    req,
-    res
-  ) => {
-    try {
-      const {
-        document,
-        absolutePath,
-      } =
-        await getDownloadableDocument(
-          req.params.id,
-          req.user
-        );
+export const downloadDocument = asyncHandler(async (req, res) => {
+  const { document, absolutePath } = await getDownloadableDocument(
+    req.params.id,
+    req.user
+  );
+  return res.download(absolutePath, document.originalName);
+});
 
-      return res.download(
-        absolutePath,
-        document.originalName
-      );
-    } catch (error) {
-      return res.status(
-        error.statusCode || 400
-      ).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
-
-export const deleteDocument = async (
-  req,
-  res
-) => {
-  try {
-    const document =
-      await deleteService(
-        req.params.id
-      );
-
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Document not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message:
-        "Document deleted successfully",
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+export const deleteDocument = asyncHandler(async (req, res) => {
+  const document = await deleteService(req.params.id);
+  if (!document) {
+    throw new AppError("Document not found", 404);
   }
-};
+  res.status(200).json({
+    success: true,
+    message: "Document deleted successfully",
+  });
+});

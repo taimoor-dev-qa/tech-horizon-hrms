@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -17,6 +18,12 @@ import {
 
 import runTransaction
   from "../utils/runTransaction.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["email"], message: "Email already exists" },
+  { fields: ["cnic"], message: "CNIC already exists" },
+];
 
 const ALLOWED_ROLES = [
   "employee",
@@ -46,18 +53,14 @@ const createEmployeeInSession =
       !email ||
       !password
     ) {
-      throw new Error(
-        "Name, email and password are required"
-      );
+      throw new AppError("Name, email and password are required", 400);
     }
 
     if (
       !department ||
       !designation
     ) {
-      throw new Error(
-        "Department and designation are required"
-      );
+      throw new AppError("Department and designation are required", 400);
     }
 
     if (
@@ -65,9 +68,7 @@ const createEmployeeInSession =
         role
       )
     ) {
-      throw new Error(
-        "Invalid employee role"
-      );
+      throw new AppError("Invalid employee role", 400);
     }
 
     const existingUser =
@@ -77,9 +78,7 @@ const createEmployeeInSession =
       }).session(session);
 
     if (existingUser) {
-      throw new Error(
-        "Email already exists"
-      );
+      throw new AppError("Email already exists", 400);
     }
 
     await validateOrganization(
@@ -149,25 +148,29 @@ export const createEmployee =
      * Isliye supplied session ko
      * directly reuse karna hai.
      */
-    if (session) {
-      return createEmployeeInSession(
-        data,
-        session
-      );
-    }
-
-    /*
-     * Normal HR employee creation bhi
-     * ab transaction-safe hai.
-     */
-    return runTransaction(
-      async (
-        transactionSession
-      ) => {
-        return createEmployeeInSession(
+    try {
+      if (session) {
+        return await createEmployeeInSession(
           data,
-          transactionSession
+          session
         );
       }
-    );
+
+      /*
+       * Normal HR employee creation bhi
+       * ab transaction-safe hai.
+       */
+      return await runTransaction(
+        async (
+          transactionSession
+        ) => {
+          return createEmployeeInSession(
+            data,
+            transactionSession
+          );
+        }
+      );
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
   };

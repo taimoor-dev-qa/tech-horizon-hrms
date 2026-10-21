@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -125,9 +126,7 @@ export const getMyPayrolls =
       });
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     const filter = {

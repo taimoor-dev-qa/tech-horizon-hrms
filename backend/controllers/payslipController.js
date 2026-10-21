@@ -1,12 +1,9 @@
 import {
   getMyPayslip,
 } from "../services/payslipService.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-export const getEmployeePayslip = async (
-  req,
-  res
-) => {
-  try {
+export const getEmployeePayslip = asyncHandler(async (req, res) => {
     const payslip = await getMyPayslip(
       req.user._id,
       req.params.id
@@ -16,10 +13,4 @@ export const getEmployeePayslip = async (
       success: true,
       payslip,
     });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+});

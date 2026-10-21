@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Candidate
   from "../models/Candidate.js";
 
@@ -25,9 +26,7 @@ export const hireCandidate =
       !data.temporaryPassword ||
       !data.joiningDate
     ) {
-      throw new Error(
-        "Temporary password and joining date are required"
-      );
+      throw new AppError("Temporary password and joining date are required", 400);
     }
 
     return runTransaction(
@@ -40,24 +39,18 @@ export const hireCandidate =
             .session(session);
 
         if (!candidate) {
-          throw new Error(
-            "Candidate not found"
-          );
+          throw new AppError("Candidate not found", 400);
         }
 
         if (candidate.employee) {
-          throw new Error(
-            "Candidate has already been converted to employee"
-          );
+          throw new AppError("Candidate has already been converted to employee", 400);
         }
 
         if (
           candidate.status !==
           CANDIDATE_STATUS.OFFER
         ) {
-          throw new Error(
-            "Candidate must be in offer stage before hiring"
-          );
+          throw new AppError("Candidate must be in offer stage before hiring", 400);
         }
 
         const job =
@@ -68,18 +61,14 @@ export const hireCandidate =
             .session(session);
 
         if (!job) {
-          throw new Error(
-            "Candidate job not found"
-          );
+          throw new AppError("Candidate job not found", 400);
         }
 
         if (
           job.filledPositions >=
           job.vacancies
         ) {
-          throw new Error(
-            "No vacancies are available for this job"
-          );
+          throw new AppError("No vacancies are available for this job", 400);
         }
 
         const employee =

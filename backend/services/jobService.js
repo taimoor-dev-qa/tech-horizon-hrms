@@ -1,8 +1,14 @@
+import AppError from "../utils/AppError.js";
 import Job from "../models/Job.js";
 
 import {
   validateJobStructure,
 } from "./jobValidationService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["code"], message: "Job code already exists" },
+];
 
 export const createJob = async (
   data,
@@ -13,9 +19,7 @@ export const createJob = async (
   });
 
   if (existing) {
-    throw new Error(
-      "Job code already exists"
-    );
+    throw new AppError("Job code already exists", 400);
   }
 
   await validateJobStructure(
@@ -23,10 +27,14 @@ export const createJob = async (
     data.designation
   );
 
-  return Job.create({
-    ...data,
-    createdBy: userId,
-  });
+  try {
+    return await Job.create({
+      ...data,
+      createdBy: userId,
+    });
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const updateJob = async (
@@ -52,7 +60,11 @@ export const updateJob = async (
 
   Object.assign(job, data);
 
-  await job.save();
+  try {
+    await job.save();
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 
   return job;
 };

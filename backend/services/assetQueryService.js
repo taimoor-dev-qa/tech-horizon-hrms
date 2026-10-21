@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Asset
   from "../models/Asset.js";
 
@@ -114,9 +115,7 @@ export const getMyAssets =
       });
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     const filter = {

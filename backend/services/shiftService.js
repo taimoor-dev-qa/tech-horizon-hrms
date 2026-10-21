@@ -1,4 +1,10 @@
+import AppError from "../utils/AppError.js";
 import Shift from "../models/Shift.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["code"], message: "Shift name or code already exists" },
+];
 
 export const createShift = async (data) => {
   const existingShift = await Shift.findOne({
@@ -9,12 +15,14 @@ export const createShift = async (data) => {
   });
 
   if (existingShift) {
-    throw new Error(
-      "Shift name or code already exists"
-    );
+    throw new AppError("Shift name or code already exists", 400);
   }
 
-  return Shift.create(data);
+  try {
+    return await Shift.create(data);
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const getShifts = async () => {
@@ -31,14 +39,18 @@ export const updateShift = async (
   id,
   data
 ) => {
-  return Shift.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  try {
+    return await Shift.findByIdAndUpdate(
+      id,
+      data,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const deleteShift = async (id) => {

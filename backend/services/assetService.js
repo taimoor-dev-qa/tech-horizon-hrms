@@ -1,4 +1,11 @@
+import AppError from "../utils/AppError.js";
 import Asset from "../models/Asset.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["assetTag"], message: "Asset tag already exists" },
+  { fields: ["serialNumber"], message: "Asset serial number already exists" },
+];
 
 export const createAsset = async (data) => {
   const existing = await Asset.findOne({
@@ -6,26 +13,32 @@ export const createAsset = async (data) => {
   });
 
   if (existing) {
-    throw new Error(
-      "Asset tag already exists"
-    );
+    throw new AppError("Asset tag already exists", 400);
   }
 
-  return Asset.create(data);
+  try {
+    return await Asset.create(data);
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const updateAsset = async (
   id,
   data
 ) => {
-  return Asset.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  try {
+    return await Asset.findByIdAndUpdate(
+      id,
+      data,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const deleteAsset = async (id) => {
@@ -36,9 +49,7 @@ export const deleteAsset = async (id) => {
   }
 
   if (asset.status === "assigned") {
-    throw new Error(
-      "Assigned asset cannot be deleted"
-    );
+    throw new AppError("Assigned asset cannot be deleted", 400);
   }
 
   return Asset.findByIdAndDelete(id);

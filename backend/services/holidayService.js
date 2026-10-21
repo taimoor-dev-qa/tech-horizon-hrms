@@ -1,4 +1,10 @@
+import AppError from "../utils/AppError.js";
 import Holiday from "../models/Holiday.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["name", "date"], message: "Holiday already exists for this date" },
+];
 
 export const createHoliday = async (data) => {
   const existing = await Holiday.findOne({
@@ -7,12 +13,14 @@ export const createHoliday = async (data) => {
   });
 
   if (existing) {
-    throw new Error(
-      "Holiday already exists for this date"
-    );
+    throw new AppError("Holiday already exists for this date", 400);
   }
 
-  return Holiday.create(data);
+  try {
+    return await Holiday.create(data);
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const getHolidays = async ({
@@ -36,14 +44,18 @@ export const updateHoliday = async (
   id,
   data
 ) => {
-  return Holiday.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  try {
+    return await Holiday.findByIdAndUpdate(
+      id,
+      data,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+  } catch (error) {
+    throw mapDuplicateKeyError(error, duplicateConstraints);
+  }
 };
 
 export const deleteHoliday = async (id) => {

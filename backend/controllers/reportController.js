@@ -26,77 +26,23 @@ import {
   getAssetReport,
 } from "../services/assetReportService.js";
 
-const sendReport = async (
-  res,
-  callback
-) => {
-  try {
-    const report = await callback();
+import asyncHandler from "../utils/asyncHandler.js";
 
-    res.status(200).json({
-      success: true,
-      ...report,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+const sendReport = (callback) => asyncHandler(async (req, res) => {
+  const report = await callback(req.query);
+  res.status(200).json({ success: true, ...report });
+});
 
-export const employeeReport = (
-  req,
-  res
-) =>
-  sendReport(res, () =>
-    getEmployeeReport(req.query)
-  );
+export const employeeReport = sendReport(getEmployeeReport);
 
-export const attendanceReport = (
-  req,
-  res
-) =>
-  sendReport(res, () =>
-    getAttendanceReport(req.query)
-  );
+export const attendanceReport = sendReport(getAttendanceReport);
 
-export const leaveReport = (
-  req,
-  res
-) =>
-  sendReport(res, () =>
-    getLeaveReport(req.query)
-  );
+export const leaveReport = sendReport(getLeaveReport);
 
-export const payrollReport = (
-  req,
-  res
-) =>
-  sendReport(res, () =>
-    getPayrollReport(req.query)
-  );
+export const payrollReport = sendReport(getPayrollReport);
 
-export const recruitmentReport = (
-  req,
-  res
-) =>
-  sendReport(res, () =>
-    getRecruitmentReport(req.query)
-  );
+export const recruitmentReport = sendReport(getRecruitmentReport);
 
-export const performanceReport = (
-  req,
-  res
-) =>
-  sendReport(res, () =>
-    getPerformanceReport(req.query)
-  );
+export const performanceReport = sendReport(getPerformanceReport);
 
-export const assetReport = (
-  req,
-  res
-) =>
-  sendReport(res, () =>
-    getAssetReport(req.query)
-  );
+export const assetReport = sendReport(getAssetReport);

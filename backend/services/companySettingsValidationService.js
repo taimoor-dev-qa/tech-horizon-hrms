@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 export const validateSettingsData = (
   data
 ) => {
@@ -8,9 +9,7 @@ export const validateSettingsData = (
       data.payroll.payrollDay > 31
     )
   ) {
-    throw new Error(
-      "Payroll day must be between 1 and 31"
-    );
+    throw new AppError("Payroll day must be between 1 and 31", 400);
   }
 
   if (
@@ -21,9 +20,7 @@ export const validateSettingsData = (
       data.leave.leaveYearStartMonth > 12
     )
   ) {
-    throw new Error(
-      "Leave year start month must be between 1 and 12"
-    );
+    throw new AppError("Leave year start month must be between 1 and 12", 400);
   }
 
   if (
@@ -31,8 +28,6 @@ export const validateSettingsData = (
       undefined &&
     data.attendance.graceMinutes < 0
   ) {
-    throw new Error(
-      "Grace minutes cannot be negative"
-    );
+    throw new AppError("Grace minutes cannot be negative", 400);
   }
 };

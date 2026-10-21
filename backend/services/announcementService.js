@@ -25,6 +25,8 @@ import {
 import runTransaction
   from "../utils/runTransaction.js";
 
+import AppError from "../utils/AppError.js";
+
 export const createAnnouncement =
   async (
     data,
@@ -67,8 +69,9 @@ export const updateAnnouncement =
       announcement.status !==
       ANNOUNCEMENT_STATUS.DRAFT
     ) {
-      throw new Error(
-        "Only draft announcements can be edited"
+      throw new AppError(
+        "Only draft announcements can be edited",
+        400
       );
     }
 
@@ -110,8 +113,9 @@ export const deleteAnnouncement =
       announcement.status ===
       ANNOUNCEMENT_STATUS.PUBLISHED
     ) {
-      throw new Error(
-        "Published announcement cannot be deleted"
+      throw new AppError(
+        "Published announcement cannot be deleted",
+        400
       );
     }
 
@@ -146,13 +150,15 @@ export const publishAnnouncement =
               .session(session);
 
           if (!existing) {
-            throw new Error(
-              "Announcement not found"
+            throw new AppError(
+              "Announcement not found",
+              400
             );
           }
 
-          throw new Error(
-            "Only draft announcement can be published"
+          throw new AppError(
+            "Only draft announcement can be published",
+            400
           );
         }
 
@@ -215,8 +221,9 @@ export const archiveAnnouncement =
       );
 
     if (!announcement) {
-      throw new Error(
-        "Announcement not found"
+      throw new AppError(
+        "Announcement not found",
+        400
       );
     }
 

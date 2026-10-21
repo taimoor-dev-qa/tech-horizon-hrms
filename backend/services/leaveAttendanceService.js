@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Attendance
   from "../models/Attendance.js";
 
@@ -15,6 +16,7 @@ import {
 import {
   getWorkingDates,
 } from "./leaveDateService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
 
 export const markLeaveAttendance =
   async (
@@ -41,9 +43,7 @@ export const markLeaveAttendance =
       await employeeQuery;
 
     if (!employee?.shift) {
-      throw new Error(
-        "Employee shift not found"
-      );
+      throw new AppError("Employee shift not found", 400);
     }
 
     const holidayDates =
@@ -87,9 +87,7 @@ export const markLeaveAttendance =
         existing?.checkIn ||
         existing?.checkOut
       ) {
-        throw new Error(
-          `Attendance already exists for ${attendanceDate}`
-        );
+        throw new AppError(`Attendance already exists for ${attendanceDate}`, 400);
       }
 
       const options = {
@@ -103,33 +101,45 @@ export const markLeaveAttendance =
           session;
       }
 
-      await Attendance
-        .findOneAndUpdate(
-          {
-            employee:
-              employee._id,
+      try {
+        await Attendance
+          .findOneAndUpdate(
+            {
+              employee:
+                employee._id,
 
-            attendanceDate,
-          },
+              attendanceDate,
+            },
 
-          {
-            employee:
-              employee._id,
+            {
+              employee:
+                employee._id,
 
-            shift:
-              employee.shift._id,
+              shift:
+                employee.shift._id,
 
-            attendanceDate,
+              attendanceDate,
 
-            status:
-              ATTENDANCE_STATUS
-                .ON_LEAVE,
+              status:
+                ATTENDANCE_STATUS
+                  .ON_LEAVE,
 
-            notes:
-              "Approved leave",
-          },
+              notes:
+                "Approved leave",
+            },
 
-          options
+            options
+          );
+      } catch (error) {
+        throw mapDuplicateKeyError(
+          error,
+          [
+            {
+              fields: ["employee", "attendanceDate"],
+              message: `Attendance already exists for ${attendanceDate}`,
+            },
+          ]
         );
+      }
     }
   };

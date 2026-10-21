@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
   notifyPerformanceSubmitted,
 } from "./performanceNotificationService.js";
@@ -16,18 +17,14 @@ export const submitPerformanceReview =
       await PerformanceReview.findById(id);
 
     if (!review) {
-      throw new Error(
-        "Performance review not found"
-      );
+      throw new AppError("Performance review not found", 400);
     }
 
     if (
       review.status !==
       PERFORMANCE_STATUS.DRAFT
     ) {
-      throw new Error(
-        "Only draft reviews can be submitted"
-      );
+      throw new AppError("Only draft reviews can be submitted", 400);
     }
 
     const hasAdminAccess = [
@@ -40,9 +37,7 @@ export const submitPerformanceReview =
       String(actor._id) &&
       !hasAdminAccess
     ) {
-      throw new Error(
-        "You cannot submit this review"
-      );
+      throw new AppError("You cannot submit this review", 400);
     }
 
     review.status =
@@ -71,36 +66,28 @@ export const acknowledgePerformanceReview =
     });
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     const review =
       await PerformanceReview.findById(id);
 
     if (!review) {
-      throw new Error(
-        "Performance review not found"
-      );
+      throw new AppError("Performance review not found", 400);
     }
 
     if (
       String(review.employee) !==
       String(employee._id)
     ) {
-      throw new Error(
-        "This performance review does not belong to you"
-      );
+      throw new AppError("This performance review does not belong to you", 400);
     }
 
     if (
       review.status !==
       PERFORMANCE_STATUS.SUBMITTED
     ) {
-      throw new Error(
-        "Review is not awaiting acknowledgement"
-      );
+      throw new AppError("Review is not awaiting acknowledgement", 400);
     }
 
     review.employeeComment =

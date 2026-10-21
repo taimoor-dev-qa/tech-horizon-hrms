@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 export const validateDateRange = (
   startDate,
   endDate
@@ -7,9 +8,7 @@ export const validateDateRange = (
   }
 
   if (!startDate || !endDate) {
-    throw new Error(
-      "Both startDate and endDate are required"
-    );
+    throw new AppError("Both startDate and endDate are required", 400);
   }
 
   const start = new Date(
@@ -24,13 +23,11 @@ export const validateDateRange = (
     Number.isNaN(start.getTime()) ||
     Number.isNaN(end.getTime())
   ) {
-    throw new Error("Invalid date range");
+    throw new AppError("Invalid date range", 400);
   }
 
   if (start > end) {
-    throw new Error(
-      "startDate cannot be after endDate"
-    );
+    throw new AppError("startDate cannot be after endDate", 400);
   }
 };
 
@@ -39,8 +36,6 @@ export const validateMonth = (month) => {
     month &&
     !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)
   ) {
-    throw new Error(
-      "Month must use YYYY-MM format"
-    );
+    throw new AppError("Month must use YYYY-MM format", 400);
   }
 };

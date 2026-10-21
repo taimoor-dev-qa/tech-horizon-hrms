@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import EmployeeDocument
   from "../models/EmployeeDocument.js";
 
@@ -18,9 +19,7 @@ export const createEmployeeDocument =
     uploadedBy
   ) => {
     if (!file) {
-      throw new Error(
-        "Document file is required"
-      );
+      throw new AppError("Document file is required", 400);
     }
 
     let savedFile = null;
@@ -144,4 +143,4 @@ export const updateDocumentDetails =
     await document.save();
 
     return document;
-  };  
+  };

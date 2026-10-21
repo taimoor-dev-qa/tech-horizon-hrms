@@ -9,145 +9,66 @@ import {
   getAnnouncements as getAllService,
 } from "../services/announcementQueryService.js";
 
-export const createAnnouncement =
-  async (req, res) => {
-    try {
-      const announcement =
-        await createService(
-          req.body,
-          req.user._id
-        );
+import asyncHandler from "../utils/asyncHandler.js";
+import AppError from "../utils/AppError.js";
 
-      res.status(201).json({
-        success: true,
-        message:
-          "Announcement created successfully",
-        announcement,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+export const createAnnouncement = asyncHandler(async (req, res) => {
+  const announcement = await createService(req.body, req.user._id);
 
-export const getAnnouncements =
-  async (req, res) => {
-    try {
-      const result =
-        await getAllService(
-          req.query
-        );
+  res.status(201).json({
+    success: true,
+    message: "Announcement created successfully",
+    announcement,
+  });
+});
 
-      res.status(200).json({
-        success: true,
+export const getAnnouncements = asyncHandler(async (req, res) => {
+  const result = await getAllService(req.query);
 
-        count:
-          result
-            .announcements
-            .length,
+  res.status(200).json({
+    success: true,
+    count: result.announcements.length,
+    pagination: result.pagination,
+    announcements: result.announcements,
+  });
+});
 
-        pagination:
-          result.pagination,
+export const getAnnouncementById = asyncHandler(async (req, res) => {
+  const announcement = await getByIdService(req.params.id);
 
-        announcements:
-          result
-            .announcements,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
+  if (!announcement) {
+    throw new AppError("Announcement not found", 404);
+  }
 
-export const getAnnouncementById =
-  async (req, res) => {
-    try {
-      const announcement =
-        await getByIdService(
-          req.params.id
-        );
+  res.status(200).json({
+    success: true,
+    announcement,
+  });
+});
 
-      if (!announcement) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Announcement not found",
-        });
-      }
+export const updateAnnouncement = asyncHandler(async (req, res) => {
+  const announcement = await updateService(req.params.id, req.body);
 
-      res.status(200).json({
-        success: true,
-        announcement,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+  if (!announcement) {
+    throw new AppError("Announcement not found", 404);
+  }
 
-export const updateAnnouncement =
-  async (req, res) => {
-    try {
-      const announcement =
-        await updateService(
-          req.params.id,
-          req.body
-        );
+  res.status(200).json({
+    success: true,
+    message: "Announcement updated successfully",
+    announcement,
+  });
+});
 
-      if (!announcement) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Announcement not found",
-        });
-      }
+export const deleteAnnouncement = asyncHandler(async (req, res) => {
+  const announcement = await deleteService(req.params.id);
 
-      res.status(200).json({
-        success: true,
-        message:
-          "Announcement updated successfully",
-        announcement,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+  if (!announcement) {
+    throw new AppError("Announcement not found", 404);
+  }
 
-export const deleteAnnouncement =
-  async (req, res) => {
-    try {
-      const announcement =
-        await deleteService(
-          req.params.id
-        );
-
-      if (!announcement) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Announcement not found",
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message:
-          "Announcement deleted successfully",
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+  res.status(200).json({
+    success: true,
+    message: "Announcement deleted successfully",
+  });
+});

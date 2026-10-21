@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Timesheet from "../models/Timesheet.js";
 
 import {
@@ -63,18 +64,14 @@ export const updateTimesheet = async (
     String(timesheet.employee) !==
     String(employee._id)
   ) {
-    throw new Error(
-      "You cannot edit this timesheet"
-    );
+    throw new AppError("You cannot edit this timesheet", 400);
   }
 
   if (
     timesheet.status !==
     TIMESHEET_STATUS.PENDING
   ) {
-    throw new Error(
-      "Only pending timesheets can be edited"
-    );
+    throw new AppError("Only pending timesheets can be edited", 400);
   }
 
   const workDate =
@@ -132,18 +129,14 @@ export const deleteTimesheet = async (
     String(timesheet.employee) !==
     String(employee._id)
   ) {
-    throw new Error(
-      "You cannot delete this timesheet"
-    );
+    throw new AppError("You cannot delete this timesheet", 400);
   }
 
   if (
     timesheet.status !==
     TIMESHEET_STATUS.PENDING
   ) {
-    throw new Error(
-      "Only pending timesheets can be deleted"
-    );
+    throw new AppError("Only pending timesheets can be deleted", 400);
   }
 
   return Timesheet.findByIdAndDelete(

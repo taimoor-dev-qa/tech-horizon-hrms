@@ -1,5 +1,10 @@
 import Candidate from "../models/Candidate.js";
 
+import {
+  buildPagination,
+  getPagination,
+} from "../utils/pagination.js";
+
 const populateCandidate = (query) => {
   return query.populate({
     path: "job",
@@ -22,6 +27,8 @@ export const getCandidates = async ({
   job,
   status,
   search,
+  page,
+  limit,
 } = {}) => {
   const filter = {};
 
@@ -56,11 +63,26 @@ export const getCandidates = async ({
     ];
   }
 
-  return populateCandidate(
-    Candidate.find(filter).sort({
-      createdAt: -1,
-    })
-  );
+  const pagination = getPagination({ page, limit });
+
+  const [candidates, total] = await Promise.all([
+    populateCandidate(
+      Candidate.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+    ),
+    Candidate.countDocuments(filter),
+  ]);
+
+  return {
+    candidates,
+    pagination: buildPagination(
+      pagination.page,
+      pagination.limit,
+      total
+    ),
+  };
 };
 
 export const getCandidateById = async (

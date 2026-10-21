@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import SalaryStructure
   from "../models/SalaryStructure.js";
 
@@ -13,6 +14,7 @@ import {
 import {
   getMonthRange,
 } from "./payrollPeriodService.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
 
 export const createSalaryStructure =
   async (data, userId) => {
@@ -33,9 +35,7 @@ export const createSalaryStructure =
       data.currency.toUpperCase() !==
       settings.currency
     ) {
-      throw new Error(
-        `Salary currency must match company currency (${settings.currency})`
-      );
+      throw new AppError(`Salary currency must match company currency (${settings.currency})`, 400);
     }
 
     const existing =
@@ -45,20 +45,30 @@ export const createSalaryStructure =
       });
 
     if (existing) {
-      throw new Error(
-        "Employee already has an active salary structure"
-      );
+      throw new AppError("Employee already has an active salary structure", 400);
     }
 
-    return SalaryStructure.create({
-      ...data,
+    try {
+      return await SalaryStructure.create({
+        ...data,
 
-      currency:
-        settings.currency,
+        currency:
+          settings.currency,
 
-      createdBy:
-        userId,
-    });
+        createdBy:
+          userId,
+      });
+    } catch (error) {
+      throw mapDuplicateKeyError(
+        error,
+        [
+          {
+            fields: ["employee"],
+            message: "Employee already has an active salary structure",
+          },
+        ]
+      );
+    }
   };
 
 export const getSalaryStructures =

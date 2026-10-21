@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
     notifyLeaveApprover,
 } from "./leaveNotificationService.js";
@@ -45,15 +46,11 @@ const getEmployee = async (
         }).populate("shift");
 
     if (!employee) {
-        throw new Error(
-            "Employee profile not found"
-        );
+        throw new AppError("Employee profile not found", 400);
     }
 
     if (!employee.shift) {
-        throw new Error(
-            "Employee does not have a shift assigned"
-        );
+        throw new AppError("Employee does not have a shift assigned", 400);
     }
 
     return employee;
@@ -85,9 +82,7 @@ const checkOverlap = async (
         });
 
     if (existing) {
-        throw new Error(
-            "Leave request overlaps with an existing request"
-        );
+        throw new AppError("Leave request overlaps with an existing request", 400);
     }
 };
 
@@ -116,9 +111,7 @@ export const createLeaveRequest =
             !leaveType ||
             !leaveType.isActive
         ) {
-            throw new Error(
-                "Leave type not found or inactive"
-            );
+            throw new AppError("Leave type not found or inactive", 400);
         }
 
         await checkOverlap(
@@ -142,9 +135,7 @@ export const createLeaveRequest =
             );
 
         if (totalDays < 1) {
-            throw new Error(
-                "Selected dates contain no working days"
-            );
+            throw new AppError("Selected dates contain no working days", 400);
         }
 
         await validateRequestBalance(

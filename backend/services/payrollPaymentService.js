@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
   notifyPayrollGenerated,
   notifyPayrollPaid,
@@ -20,18 +21,14 @@ export const generatePayroll =
       await Payroll.findById(id);
 
     if (!payroll) {
-      throw new Error(
-        "Payroll not found"
-      );
+      throw new AppError("Payroll not found", 400);
     }
 
     if (
       payroll.status !==
       PAYROLL_STATUS.DRAFT
     ) {
-      throw new Error(
-        "Only draft payroll can be generated"
-      );
+      throw new AppError("Only draft payroll can be generated", 400);
     }
 
     await validatePayrollGenerationDay(
@@ -62,18 +59,14 @@ export const markPayrollPaid =
       await Payroll.findById(id);
 
     if (!payroll) {
-      throw new Error(
-        "Payroll not found"
-      );
+      throw new AppError("Payroll not found", 400);
     }
 
     if (
       payroll.status !==
       PAYROLL_STATUS.GENERATED
     ) {
-      throw new Error(
-        "Only generated payroll can be marked as paid"
-      );
+      throw new AppError("Only generated payroll can be marked as paid", 400);
     }
 
     payroll.status =

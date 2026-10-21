@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Department from "../models/Department.js";
 import Designation from "../models/Designation.js";
 
@@ -10,7 +11,7 @@ export const validateJobStructure = async (
   );
 
   if (!department) {
-    throw new Error("Department not found");
+    throw new AppError("Department not found", 400);
   }
 
   const designation =
@@ -19,15 +20,13 @@ export const validateJobStructure = async (
     );
 
   if (!designation) {
-    throw new Error("Designation not found");
+    throw new AppError("Designation not found", 400);
   }
 
   if (
     String(designation.department) !==
     String(departmentId)
   ) {
-    throw new Error(
-      "Designation does not belong to selected department"
-    );
+    throw new AppError("Designation does not belong to selected department", 400);
   }
 };

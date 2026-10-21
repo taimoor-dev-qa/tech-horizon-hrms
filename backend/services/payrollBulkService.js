@@ -1,5 +1,6 @@
 import Employee
   from "../models/Employee.js";
+import AppError from "../utils/AppError.js";
 
 import SalaryStructure
   from "../models/SalaryStructure.js";
@@ -161,9 +162,8 @@ export const generateBulkPayroll =
         });
       } catch (error) {
         if (
-          error.message.includes(
-            "Payroll already exists"
-          )
+          error instanceof AppError &&
+          error.businessCode === "PAYROLL_EXISTS"
         ) {
           results.skipped.push({
             employee:
@@ -181,7 +181,9 @@ export const generateBulkPayroll =
             employee.employeeId,
 
           reason:
-            error.message,
+            process.env.NODE_ENV === "production" && !error.isOperational
+              ? "Internal server error"
+              : error.message,
         });
       }
     }

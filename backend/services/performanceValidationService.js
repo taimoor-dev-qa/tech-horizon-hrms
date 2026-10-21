@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee from "../models/Employee.js";
 
 import ROLES from "../constants/roles.js";
@@ -17,7 +18,7 @@ export const getValidEmployee = async (
   );
 
   if (!employee) {
-    throw new Error("Employee not found");
+    throw new AppError("Employee not found", 400);
   }
 
   return employee;
@@ -28,9 +29,7 @@ export const validateReviewerAccess = async (
   employee
 ) => {
   if (!REVIEWER_ROLES.includes(actor.role)) {
-    throw new Error(
-      "You cannot create performance reviews"
-    );
+    throw new AppError("You cannot create performance reviews", 400);
   }
 
   if (
@@ -51,9 +50,7 @@ export const validateReviewerAccess = async (
     String(actor._id);
 
   if (!isManager && !isTeamLead) {
-    throw new Error(
-      "You cannot review this employee"
-    );
+    throw new AppError("You cannot review this employee", 400);
   }
 };
 
@@ -73,15 +70,11 @@ export const validateReviewDates = (
     Number.isNaN(start.getTime()) ||
     Number.isNaN(end.getTime())
   ) {
-    throw new Error(
-      "Invalid performance review dates"
-    );
+    throw new AppError("Invalid performance review dates", 400);
   }
 
   if (start > end) {
-    throw new Error(
-      "Period start cannot be after period end"
-    );
+    throw new AppError("Period start cannot be after period end", 400);
   }
 };
 
@@ -104,9 +97,7 @@ export const calculateOverallScore = (
   );
 
   if (invalid) {
-    throw new Error(
-      "All ratings must be between 1 and 5"
-    );
+    throw new AppError("All ratings must be between 1 and 5", 400);
   }
 
   const total = values.reduce(

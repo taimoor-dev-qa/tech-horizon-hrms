@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -17,6 +18,12 @@ import {
 
 import runTransaction
   from "../utils/runTransaction.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+
+const duplicateConstraints = [
+  { fields: ["email"], message: "Email already exists" },
+  { fields: ["cnic"], message: "CNIC already exists" },
+];
 
 const ALLOWED_ROLES = [
   "employee",
@@ -46,8 +53,10 @@ export const updateEmployee =
     data,
     actor
   ) => {
-    const updated =
-      await runTransaction(
+    let updated;
+
+    try {
+      updated = await runTransaction(
         async (session) => {
           const employee =
             await Employee
@@ -148,9 +157,7 @@ export const updateEmployee =
                 );
 
             if (existingUser) {
-              throw new Error(
-                "Email already exists"
-              );
+              throw new AppError("Email already exists", 400);
             }
 
             userUpdates.email =
@@ -163,9 +170,7 @@ export const updateEmployee =
                 data.role
               )
             ) {
-              throw new Error(
-                "Invalid employee role"
-              );
+              throw new AppError("Invalid employee role", 400);
             }
 
             userUpdates.role =
@@ -211,13 +216,15 @@ export const updateEmployee =
           return employee._id;
         }
       );
+    } catch (error) {
+      throw mapDuplicateKeyError(error, duplicateConstraints);
+    }
 
     if (!updated) {
       return null;
     }
 
     return getEmployeeById(
-      actor,
       updated
     );
   };

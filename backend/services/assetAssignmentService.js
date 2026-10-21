@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Asset
   from "../models/Asset.js";
 
@@ -15,26 +16,26 @@ import {
 
 import runTransaction
   from "../utils/runTransaction.js";
+import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
 
 export const assignAsset =
   async (
     data,
     assignedBy
   ) => {
-    return runTransaction(
-      async (session) => {
-        const employee =
-          await Employee
-            .findById(
-              data.employee
-            )
-            .session(session);
+    try {
+      return await runTransaction(
+        async (session) => {
+          const employee =
+            await Employee
+              .findById(
+                data.employee
+              )
+              .session(session);
 
-        if (!employee) {
-          throw new Error(
-            "Employee not found"
-          );
-        }
+          if (!employee) {
+            throw new AppError("Employee not found", 400);
+          }
 
         /*
          * Asset ko sirf tab assigned
@@ -44,88 +45,93 @@ export const assignAsset =
          * Ye concurrent assignment
          * ko bhi protect karta hai.
          */
-        const asset =
-          await Asset.findOneAndUpdate(
-            {
-              _id: data.asset,
-
-              status:
-                ASSET_STATUS.AVAILABLE,
-
-              isActive: true,
-            },
-
-            {
-              $set: {
-                status:
-                  ASSET_STATUS.ASSIGNED,
-              },
-            },
-
-            {
-              new: true,
-              runValidators: true,
-              session,
-            }
-          );
-
-        if (!asset) {
-          const existingAsset =
-            await Asset
-              .findById(
-                data.asset
-              )
-              .session(session);
-
-          if (!existingAsset) {
-            throw new Error(
-              "Asset not found"
-            );
-          }
-
-          if (
-            !existingAsset.isActive
-          ) {
-            throw new Error(
-              "Inactive asset cannot be assigned"
-            );
-          }
-
-          throw new Error(
-            "Asset is not available"
-          );
-        }
-
-        const assignments =
-          await AssetAssignment.create(
-            [
+          const asset =
+            await Asset.findOneAndUpdate(
               {
-                asset:
-                  asset._id,
+                _id: data.asset,
 
-                employee:
-                  employee._id,
+                status:
+                  ASSET_STATUS.AVAILABLE,
 
-                assignedDate:
-                  data.assignedDate,
-
-                assignedCondition:
-                  asset.condition,
-
-                assignedBy,
-
-                notes:
-                  data.notes || "",
+                isActive: true,
               },
-            ],
-            {
-              session,
-            }
-          );
 
-        return assignments[0];
-      }
-    );
+              {
+                $set: {
+                  status:
+                    ASSET_STATUS.ASSIGNED,
+                },
+              },
+
+              {
+                new: true,
+                runValidators: true,
+                session,
+              }
+            );
+
+          if (!asset) {
+            const existingAsset =
+              await Asset
+                .findById(
+                  data.asset
+                )
+                .session(session);
+
+            if (!existingAsset) {
+              throw new AppError("Asset not found", 400);
+            }
+
+            if (
+              !existingAsset.isActive
+            ) {
+              throw new AppError("Inactive asset cannot be assigned", 400);
+            }
+
+            throw new AppError("Asset is not available", 400);
+          }
+
+          const assignments =
+            await AssetAssignment.create(
+              [
+                {
+                  asset:
+                    asset._id,
+
+                  employee:
+                    employee._id,
+
+                  assignedDate:
+                    data.assignedDate,
+
+                  assignedCondition:
+                    asset.condition,
+
+                  assignedBy,
+
+                  notes:
+                    data.notes || "",
+                },
+              ],
+              {
+                session,
+              }
+            );
+
+          return assignments[0];
+        }
+      );
+    } catch (error) {
+      throw mapDuplicateKeyError(
+        error,
+        [
+          {
+            fields: ["asset"],
+            message: "Asset is not available",
+          },
+        ]
+      );
+    }
   };
 
 export const returnAsset =
@@ -195,14 +201,10 @@ export const returnAsset =
               );
 
           if (!existing) {
-            throw new Error(
-              "Asset assignment not found"
-            );
+            throw new AppError("Asset assignment not found", 400);
           }
 
-          throw new Error(
-            "Asset has already been returned"
-          );
+          throw new AppError("Asset has already been returned", 400);
         }
 
         const asset =
@@ -213,9 +215,7 @@ export const returnAsset =
             .session(session);
 
         if (!asset) {
-          throw new Error(
-            "Assigned asset not found"
-          );
+          throw new AppError("Assigned asset not found", 400);
         }
 
         asset.condition =

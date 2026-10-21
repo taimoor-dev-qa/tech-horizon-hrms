@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
   EMPLOYEE_STATUS,
 } from "../constants/employee.js";
@@ -77,9 +78,7 @@ export const getEmployeePayrollPeriod =
       joiningDate >
       endDate
     ) {
-      throw new Error(
-        "Employee had not joined during selected payroll month"
-      );
+      throw new AppError("Employee had not joined during selected payroll month", 400);
     }
 
     const endedStatuses = [
@@ -93,9 +92,7 @@ export const getEmployeePayrollPeriod =
       ) &&
       !employee.employmentEndDate
     ) {
-      throw new Error(
-        "Employment end date is required before generating payroll for resigned or terminated employee"
-      );
+      throw new AppError("Employment end date is required before generating payroll for resigned or terminated employee", 400);
     }
 
     const employmentEndDate =
@@ -111,9 +108,7 @@ export const getEmployeePayrollPeriod =
       employmentEndDate <
         startDate
     ) {
-      throw new Error(
-        "Employee employment ended before selected payroll month"
-      );
+      throw new AppError("Employee employment ended before selected payroll month", 400);
     }
 
     const periodStart =
@@ -133,9 +128,7 @@ export const getEmployeePayrollPeriod =
       periodStart >
       periodEnd
     ) {
-      throw new Error(
-        "Employee has no payable period in selected month"
-      );
+      throw new AppError("Employee has no payable period in selected month", 400);
     }
 
     return {

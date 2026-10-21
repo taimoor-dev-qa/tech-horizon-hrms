@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Attendance from "../models/Attendance.js";
 import Employee from "../models/Employee.js";
 import LeaveRequest from "../models/LeaveRequest.js";
@@ -35,9 +36,7 @@ export const getEmployeeDashboard = async (
     );
 
   if (!employee) {
-    throw new Error(
-      "Employee profile not found"
-    );
+    throw new AppError("Employee profile not found", 400);
   }
 
   const today = getCurrentDate();

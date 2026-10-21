@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Employee
   from "../models/Employee.js";
 
@@ -231,15 +232,7 @@ export const getPerformanceReviewById =
       );
 
     if (!allowed) {
-      const error =
-        new Error(
-          "You do not have access to this performance review"
-        );
-
-      error.statusCode =
-        403;
-
-      throw error;
+      throw new AppError("You do not have access to this performance review", 403);
     }
 
     return populateReview(
@@ -259,9 +252,7 @@ export const getMyPerformanceReviews =
       });
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     const filter = {

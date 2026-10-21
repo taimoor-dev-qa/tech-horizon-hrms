@@ -1,3 +1,5 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import {
   updateEmployee as updateEmployeeService,
 } from "../services/employeeUpdateService.js";
@@ -9,124 +11,81 @@ import {
 } from "../services/employeeStatusService.js";
 
 const sendNotFound = (res) => {
-  return res.status(404).json({
-    success: false,
-    message: "Employee not found",
+  throw new AppError("Employee not found", 404);
+};
+
+export const updateEmployee = asyncHandler(async (req, res) => {
+  const employee =
+    await updateEmployeeService(
+      req.params.id,
+      req.body,
+      req.user
+    );
+
+  if (!employee) {
+    return sendNotFound(res);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Employee updated successfully",
+    employee,
   });
-};
+});
 
-export const updateEmployee = async (
-  req,
-  res
-) => {
-  try {
-    const employee =
-      await updateEmployeeService(
-        req.params.id,
-        req.body,
-        req.user
-      );
+export const deactivateEmployee = asyncHandler(async (req, res) => {
+  const employee =
+    await deactivateService(
+      req.params.id,
+      req.user
+    );
 
-    if (!employee) {
-      return sendNotFound(res);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Employee updated successfully",
-      employee,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!employee) {
+    return sendNotFound(res);
   }
-};
 
-export const deactivateEmployee = async (
-  req,
-  res
-) => {
-  try {
-    const employee =
-      await deactivateService(
-        req.params.id,
-        req.user
-      );
+  res.status(200).json({
+    success: true,
+    message: "Employee deactivated successfully",
+    employee,
+  });
+});
 
-    if (!employee) {
-      return sendNotFound(res);
-    }
+export const reactivateEmployee = asyncHandler(async (req, res) => {
+  const employee =
+    await reactivateService(
+      req.params.id,
+      req.user
+    );
 
-    res.status(200).json({
-      success: true,
-      message: "Employee deactivated successfully",
-      employee,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!employee) {
+    return sendNotFound(res);
   }
-};
 
-export const reactivateEmployee = async (
-  req,
-  res
-) => {
-  try {
-    const employee =
-      await reactivateService(
-        req.params.id,
-        req.user
-      );
+  res.status(200).json({
+    success: true,
+    message: "Employee reactivated successfully",
+    employee,
+  });
+});
 
-    if (!employee) {
-      return sendNotFound(res);
-    }
+export const changeEmployeeStatus = asyncHandler(async (req, res) => {
+  const employee =
+    await setEmployeeStatus(
+      req.params.id,
+      req.body.status,
+      req.user,
+      req.body
+        .employmentEndDate
+    );
 
-    res.status(200).json({
-      success: true,
-      message: "Employee reactivated successfully",
-      employee,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+  if (!employee) {
+    return sendNotFound(res);
   }
-};
 
-export const changeEmployeeStatus = async (
-  req,
-  res
-) => {
-  try {
-    const employee =
-      await setEmployeeStatus(
-        req.params.id,
-        req.body.status,
-        req.user,
-        req.body
-          .employmentEndDate
-      );
-
-    if (!employee) {
-      return sendNotFound(res);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Employee status updated",
-      employee,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    message: "Employee status updated",
+    employee,
+  });
+});

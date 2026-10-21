@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import Candidate from "../models/Candidate.js";
 import User from "../models/User.js";
 
@@ -26,7 +27,7 @@ export const getValidCandidate = async (
   );
 
   if (!candidate) {
-    throw new Error("Candidate not found");
+    throw new AppError("Candidate not found", 400);
   }
 
   if (
@@ -35,9 +36,7 @@ export const getValidCandidate = async (
       CANDIDATE_STATUS.HIRED,
     ].includes(candidate.status)
   ) {
-    throw new Error(
-      "Interview cannot be scheduled for this candidate"
-    );
+    throw new AppError("Interview cannot be scheduled for this candidate", 400);
   }
 
   return candidate;
@@ -51,13 +50,11 @@ export const validateInterviewer = async (
   );
 
   if (!user) {
-    throw new Error("Interviewer not found");
+    throw new AppError("Interviewer not found", 400);
   }
 
   if (!ALLOWED_INTERVIEWERS.includes(user.role)) {
-    throw new Error(
-      "Selected user cannot conduct interviews"
-    );
+    throw new AppError("Selected user cannot conduct interviews", 400);
   }
 
   return user;
@@ -69,15 +66,11 @@ export const validateSchedule = (
   const date = new Date(scheduledAt);
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error(
-      "Invalid interview date and time"
-    );
+    throw new AppError("Invalid interview date and time", 400);
   }
 
   if (date <= new Date()) {
-    throw new Error(
-      "Interview must be scheduled in the future"
-    );
+    throw new AppError("Interview must be scheduled in the future", 400);
   }
 };
 
@@ -90,17 +83,13 @@ export const validateModeDetails = ({
     mode === INTERVIEW_MODES.ONLINE &&
     !meetingLink
   ) {
-    throw new Error(
-      "Meeting link is required for online interview"
-    );
+    throw new AppError("Meeting link is required for online interview", 400);
   }
 
   if (
     mode === INTERVIEW_MODES.ONSITE &&
     !location
   ) {
-    throw new Error(
-      "Location is required for onsite interview"
-    );
+    throw new AppError("Location is required for onsite interview", 400);
   }
 };

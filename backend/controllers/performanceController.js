@@ -1,3 +1,5 @@
+import AppError from "../utils/AppError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import {
   createPerformanceReview as createService,
   updatePerformanceReview as updateService,
@@ -9,157 +11,98 @@ import {
   getPerformanceReviews as getReviewsService,
 } from "../services/performanceQueryService.js";
 
-export const createPerformanceReview =
-  async (req, res) => {
-    try {
-      const review = await createService(
-        req.user,
-        req.body
-      );
+export const createPerformanceReview = asyncHandler(async (req, res) => {
+  const review = await createService(
+    req.user,
+    req.body
+  );
 
-      res.status(201).json({
-        success: true,
-        message:
-          "Performance review created successfully",
-        review,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+  res.status(201).json({
+    success: true,
+    message:
+      "Performance review created successfully",
+    review,
+  });
+});
 
-export const getPerformanceReviews =
-  async (
-    req,
-    res
-  ) => {
-    try {
-      const result =
-        await getReviewsService(
-          req.user,
-          req.query
-        );
+export const getPerformanceReviews = asyncHandler(async (req, res) => {
+  const result =
+    await getReviewsService(
+      req.user,
+      req.query
+    );
 
-      res.status(200).json({
-        success: true,
+  res.status(200).json({
+    success: true,
 
-        count:
-          result
-            .reviews
-            .length,
+    count:
+      result
+        .reviews
+        .length,
 
-        pagination:
-          result.pagination,
+    pagination:
+      result.pagination,
 
-        reviews:
-          result.reviews,
-      });
-    } catch (error) {
-      res.status(
-        error.statusCode ||
-        400
-      ).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
+    reviews:
+      result.reviews,
+  });
+});
 
-export const getMyPerformanceReviews =
-  async (
-    req,
-    res
-  ) => {
-    try {
-      const result =
-        await getMyService(
-          req.user._id,
-          req.query
-        );
+export const getMyPerformanceReviews = asyncHandler(async (req, res) => {
+  const result =
+    await getMyService(
+      req.user._id,
+      req.query
+    );
 
-      res.status(200).json({
-        success: true,
+  res.status(200).json({
+    success: true,
 
-        count:
-          result
-            .reviews
-            .length,
+    count:
+      result
+        .reviews
+        .length,
 
-        pagination:
-          result.pagination,
+    pagination:
+      result.pagination,
 
-        reviews:
-          result.reviews,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message:
-          error.message,
-      });
-    }
-  };
+    reviews:
+      result.reviews,
+  });
+});
 
-export const getPerformanceReviewById =
-  async (req, res) => {
-    try {
-      const review =
-        await getByIdService(
-          req.user,
-          req.params.id
-        );
+export const getPerformanceReviewById = asyncHandler(async (req, res) => {
+  const review =
+    await getByIdService(
+      req.user,
+      req.params.id
+    );
 
-      if (!review) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Performance review not found",
-        });
-      }
+  if (!review) {
+    throw new AppError("Performance review not found", 404);
+  }
 
-      res.status(200).json({
-        success: true,
-        review,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+  res.status(200).json({
+    success: true,
+    review,
+  });
+});
 
-export const updatePerformanceReview =
-  async (req, res) => {
-    try {
-      const review = await updateService(
-        req.user,
-        req.params.id,
-        req.body
-      );
+export const updatePerformanceReview = asyncHandler(async (req, res) => {
+  const review = await updateService(
+    req.user,
+    req.params.id,
+    req.body
+  );
 
-      if (!review) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Performance review not found",
-        });
-      }
+  if (!review) {
+    throw new AppError("Performance review not found", 404);
+  }
 
-      res.status(200).json({
-        success: true,
-        message:
-          "Performance review updated successfully",
-        review,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  };
+  res.status(200).json({
+    success: true,
+    message:
+      "Performance review updated successfully",
+    review,
+  });
+});

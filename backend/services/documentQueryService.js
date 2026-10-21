@@ -1,3 +1,4 @@
+import AppError from "../utils/AppError.js";
 import {
   buildPagination,
   getPagination,
@@ -112,9 +113,7 @@ export const getMyDocuments =
       });
 
     if (!employee) {
-      throw new Error(
-        "Employee profile not found"
-      );
+      throw new AppError("Employee profile not found", 400);
     }
 
     const settings =
