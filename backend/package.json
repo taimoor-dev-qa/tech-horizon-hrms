@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "indexes": "node scripts/createIndexes.js",
     "bootstrap:admin": "node scripts/bootstrapSuperAdmin.js",
-    "test": "node --test"
+    "test": "node --test",
+    "test:integration": "node --test tests/integration/replicaSet.integration.test.js"
   },
   "keywords": [
     "hrms",

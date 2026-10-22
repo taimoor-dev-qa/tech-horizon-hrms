@@ -29,3 +29,33 @@ The command creates one `super_admin` account. It refuses to run if any user exi
 `POST /api/admin/users` creates privileged accounts. It requires a **Super Admin** token and JSON with `name`, `email`, `password`, and an explicit `role` of `super_admin`, `hr_admin`, or `finance`. The response is HTTP 201 with a user summary and no password or token. HR Admins cannot use this endpoint. Privileged accounts are User records; they do not receive Employee records through this endpoint.
 
 `npm.cmd test` runs the focused Node test suite. Its database behavior is mocked, so it does not connect to a development or production database.
+
+## Isolated MongoDB integration tests
+
+The replica-set integration suite exercises real transactions, bootstrap concurrency, last-active-Super-Admin protection, employee creation, candidate hiring, MongoDB unique indexes, and reference-safe deletion. It uses a disposable database with a randomized `hrms_it_...` name and drops only that database at the end. The suite refuses non-loopback hosts and ports other than `27019`, and it is skipped unless both explicit opt-in variables are set.
+
+Docker and Docker Compose are required. The provided service has no host data volume and binds only to loopback. From `backend/`, start the isolated replica set:
+
+```powershell
+$composeProject = "hrms-it-$PID"
+$composeFile = "tests/integration/docker-compose.yml"
+
+try {
+  docker compose -p $composeProject -f $composeFile up -d --wait
+  if ($LASTEXITCODE -ne 0) { throw "Disposable MongoDB did not become healthy" }
+
+  $env:HRMS_MONGO_INTEGRATION_URI = "mongodb://127.0.0.1:27019/admin?replicaSet=rs0"
+  $env:HRMS_RUN_MONGO_INTEGRATION = "1"
+  $env:HRMS_CONFIRM_DISPOSABLE_MONGO = "disposable-local-replica-set"
+  npm.cmd run test:integration
+  if ($LASTEXITCODE -ne 0) { throw "MongoDB integration tests failed" }
+}
+finally {
+  Remove-Item Env:HRMS_MONGO_INTEGRATION_URI -ErrorAction SilentlyContinue
+  Remove-Item Env:HRMS_RUN_MONGO_INTEGRATION -ErrorAction SilentlyContinue
+  Remove-Item Env:HRMS_CONFIRM_DISPOSABLE_MONGO -ErrorAction SilentlyContinue
+  docker compose -p $composeProject -f $composeFile down --remove-orphans
+}
+```
+
+The integration command connects only after both opt-in variables match, requires the local replica set handshake to report `rs0`, creates indexes from the actual Mongoose schemas, and cleans up its uniquely named test database. Do not point the URI at any other MongoDB service. The ordinary `npm.cmd test` command never connects to MongoDB; it reports the integration tests as skipped unless explicitly opted in.
