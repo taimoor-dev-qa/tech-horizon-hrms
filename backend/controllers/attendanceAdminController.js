@@ -12,7 +12,10 @@ import {
 
 export const getAttendance = asyncHandler(async (req, res) => {
   const result =
-    await getAttendanceList(req.query);
+    await getAttendanceList(
+      req.user,
+      req.query
+    );
 
   res.status(200).json({
     success: true,
@@ -27,6 +30,7 @@ export const getDailySummary = asyncHandler(async (req, res) => {
 
   const summary =
     await getAttendanceSummary(
+      req.user,
       req.query.date
     );
 

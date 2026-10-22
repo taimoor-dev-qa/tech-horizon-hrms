@@ -241,8 +241,9 @@ test("mounted registration, login, /me, and account-creation routes enforce Phas
     const loginBody = await login.json();
     assert.equal(loginBody.success, true);
     assert.equal(typeof loginBody.token, "string");
-    assert.deepEqual(Object.keys(loginBody.user).sort(), ["email", "id", "name", "role"]);
+    assert.deepEqual(Object.keys(loginBody.user).sort(), ["email", "id", "mustChangePassword", "name", "role"]);
     assert.equal(loginBody.user.role, ROLES.SUPER_ADMIN);
+    assert.equal(loginBody.user.mustChangePassword, false);
 
     const me = await fetch(`${base}/api/auth/me`, {
       headers: { authorization: `Bearer ${loginBody.token}` },

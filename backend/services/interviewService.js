@@ -22,6 +22,9 @@ import {
   validateModeDetails,
   validateSchedule,
 } from "./interviewValidationService.js";
+import {
+  validateCandidateTransition,
+} from "./recruitmentLifecycleService.js";
 
 const EDITABLE_FIELDS = [
   "interviewer",
@@ -33,19 +36,15 @@ const EDITABLE_FIELDS = [
   "meetingLink",
 ];
 
-const updateCandidateStage = async (
+const getCandidateStage = (
   candidate,
   type
 ) => {
   if (
     type === INTERVIEW_TYPES.TECHNICAL
   ) {
-    candidate.status =
-      CANDIDATE_STATUS.TECHNICAL_INTERVIEW;
-
-    await candidate.save();
-
-    return;
+    return CANDIDATE_STATUS
+      .TECHNICAL_INTERVIEW;
   }
 
   if (
@@ -54,11 +53,10 @@ const updateCandidateStage = async (
       CANDIDATE_STATUS.SCREENING,
     ].includes(candidate.status)
   ) {
-    candidate.status =
-      CANDIDATE_STATUS.INTERVIEW;
-
-    await candidate.save();
+    return CANDIDATE_STATUS.INTERVIEW;
   }
+
+  return null;
 };
 
 export const createInterview = async (
@@ -76,16 +74,31 @@ export const createInterview = async (
   validateSchedule(data.scheduledAt);
   validateModeDetails(data);
 
+  const candidateStage =
+    getCandidateStage(
+      candidate,
+      data.type
+    );
+
+  if (candidateStage) {
+    validateCandidateTransition(
+      candidate,
+      candidateStage
+    );
+  }
+
   const interview = await Interview.create({
     ...data,
     job: candidate.job,
     createdBy,
   });
 
-  await updateCandidateStage(
-    candidate,
-    data.type
-  );
+  if (candidateStage) {
+    candidate.status =
+      candidateStage;
+
+    await candidate.save();
+  }
 
   await notifyInterviewScheduled(
     interview

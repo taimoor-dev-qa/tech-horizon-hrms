@@ -2,38 +2,45 @@ import PerformanceReview
   from "../models/PerformanceReview.js";
 
 import Employee from "../models/Employee.js";
+import {
+  getAccessibleEmployeeIds,
+  hasFullEmployeeAccess,
+} from "./employeeAccessService.js";
 
 export const getPerformanceReport =
-  async ({
-    employee,
-    department,
-    status,
-    minScore,
-    maxScore,
-  } = {}) => {
-    const filter = {};
+  async (
+    actor,
+    {
+      employee,
+      department,
+      status,
+      minScore,
+      maxScore,
+    } = {}
+  ) => {
+    const baseFilter = {};
 
     if (employee) {
-      filter.employee = employee;
+      baseFilter.employee = employee;
     }
 
     if (status) {
-      filter.status = status;
+      baseFilter.status = status;
     }
 
     if (
       minScore !== undefined ||
       maxScore !== undefined
     ) {
-      filter.overallScore = {};
+      baseFilter.overallScore = {};
 
       if (minScore !== undefined) {
-        filter.overallScore.$gte =
+        baseFilter.overallScore.$gte =
           Number(minScore);
       }
 
       if (maxScore !== undefined) {
-        filter.overallScore.$lte =
+        baseFilter.overallScore.$lte =
           Number(maxScore);
       }
     }
@@ -44,10 +51,49 @@ export const getPerformanceReport =
           department,
         }).select("_id");
 
-      filter.employee = {
+      baseFilter.employee = {
         $in: employees.map(
           (item) => item._id
         ),
+      };
+    }
+
+    const conditions = [];
+
+    if (Object.keys(baseFilter).length) {
+      conditions.push(baseFilter);
+    }
+
+    if (!hasFullEmployeeAccess(actor)) {
+      const employeeIds =
+        await getAccessibleEmployeeIds(actor);
+
+      const accessConditions = [
+        { reviewer: actor._id },
+      ];
+
+      if (employeeIds.length) {
+        accessConditions.push({
+          employee: {
+            $in: employeeIds,
+          },
+        });
+      }
+
+      conditions.push({
+        $or: accessConditions,
+      });
+    }
+
+    let filter = {};
+
+    if (conditions.length === 1) {
+      [filter] = conditions;
+    }
+
+    if (conditions.length > 1) {
+      filter = {
+        $and: conditions,
       };
     }
 

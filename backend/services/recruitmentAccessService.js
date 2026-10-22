@@ -49,7 +49,8 @@ export const validateInterviewReadAccess = (
 export const applyJobReadAccess = (
   actor,
   filter,
-  requestedStatus
+  requestedStatus,
+  currentDate
 ) => {
   if (
     hasFullRecruitmentAccess(actor)
@@ -70,12 +71,36 @@ export const applyJobReadAccess = (
   filter.status =
     JOB_STATUS.OPEN;
 
+  filter.$expr = {
+    $lt: [
+      "$filledPositions",
+      "$vacancies",
+    ],
+  };
+
+  const deadlineFilter = {
+    $or: [
+      { closingDate: null },
+      {
+        closingDate: {
+          $gte: currentDate,
+        },
+      },
+    ],
+  };
+
+  filter.$and = [
+    ...(filter.$and || []),
+    deadlineFilter,
+  ];
+
   return filter;
 };
 
 export const validateJobReadAccess = (
   actor,
-  job
+  job,
+  currentDate
 ) => {
   if (
     hasFullRecruitmentAccess(actor)
@@ -83,10 +108,16 @@ export const validateJobReadAccess = (
     return true;
   }
 
-  if (
-    job.status !==
-    JOB_STATUS.OPEN
-  ) {
+  const unavailable =
+    job.status !== JOB_STATUS.OPEN ||
+    Number(job.filledPositions || 0) >=
+      Number(job.vacancies || 0) ||
+    (
+      job.closingDate &&
+      job.closingDate < currentDate
+    );
+
+  if (unavailable) {
     throw new AppError(
       "You do not have access to this job",
       403

@@ -22,6 +22,7 @@ export const createEmployee = asyncHandler(async (req, res) => {
 
 export const getEmployees = asyncHandler(async (req, res) => {
   const result = await getEmployeesService(
+    req.user,
     req.query
   );
 

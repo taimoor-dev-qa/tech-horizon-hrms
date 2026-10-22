@@ -16,3 +16,11 @@ export const PRIVILEGED_ROLES = [
 export const privilegedUserSchema = adminAccountSchema.extend({
   role: z.enum(PRIVILEGED_ROLES),
 });
+
+export const privilegedRoleSchema = z.object({
+  role: z.enum(PRIVILEGED_ROLES),
+});
+
+export const privilegedPasswordResetSchema = z.object({
+  newPassword: z.string().min(12).max(100),
+});

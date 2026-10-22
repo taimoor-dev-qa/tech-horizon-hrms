@@ -1,5 +1,10 @@
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
+import {
+  applyEmployeeAccessScope,
+  EMPLOYEE_DIRECTORY_FIELDS,
+  hasFullEmployeeAccess,
+} from "./employeeAccessService.js";
 
 const populateEmployee = (query) => {
   return query
@@ -12,13 +17,16 @@ const populateEmployee = (query) => {
     .populate("shift","name code startTime endTime graceMinutes")
 };
 
-export const getEmployees = async ({
-  search,
-  department,
-  status,
-  page = 1,
-  limit = 10,
-}) => {
+export const getEmployees = async (
+  actor,
+  {
+    search,
+    department,
+    status,
+    page = 1,
+    limit = 10,
+  }
+) => {
   const filters = {};
 
   if (department) {
@@ -39,17 +47,30 @@ export const getEmployees = async ({
       ],
     }).select("_id");
 
-    filters.$or = [
+    const searchFilters = [
       { employeeId: regex },
-      { phone: regex },
-      { cnic: regex },
       {
         user: {
           $in: users.map((user) => user._id),
         },
       },
     ];
+
+    if (hasFullEmployeeAccess(actor)) {
+      searchFilters.push(
+        { phone: regex },
+        { cnic: regex }
+      );
+    }
+
+    filters.$or = searchFilters;
   }
+
+  const scopedFilters =
+    applyEmployeeAccessScope(
+      actor,
+      filters
+    );
 
   const currentPage = Math.max(Number(page) || 1, 1);
 
@@ -60,15 +81,27 @@ export const getEmployees = async ({
 
   const skip = (currentPage - 1) * pageSize;
 
-  const [employees, total] = await Promise.all([
-    populateEmployee(
-      Employee.find(filters)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(pageSize)
-    ),
-    Employee.countDocuments(filters),
-  ]);
+  let employeeQuery =
+    Employee.find(scopedFilters);
+
+  if (!hasFullEmployeeAccess(actor)) {
+    employeeQuery = employeeQuery.select(
+      EMPLOYEE_DIRECTORY_FIELDS
+    );
+  }
+
+  const [employees, total] =
+    await Promise.all([
+      populateEmployee(
+        employeeQuery
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(pageSize)
+      ),
+      Employee.countDocuments(
+        scopedFilters
+      ),
+    ]);
 
   return {
     employees,

@@ -33,16 +33,21 @@ const sendReport = (callback) => asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, ...report });
 });
 
-export const employeeReport = sendReport(getEmployeeReport);
+const sendScopedReport = (callback) => asyncHandler(async (req, res) => {
+  const report = await callback(req.user, req.query);
+  res.status(200).json({ success: true, ...report });
+});
 
-export const attendanceReport = sendReport(getAttendanceReport);
+export const employeeReport = sendScopedReport(getEmployeeReport);
 
-export const leaveReport = sendReport(getLeaveReport);
+export const attendanceReport = sendScopedReport(getAttendanceReport);
+
+export const leaveReport = sendScopedReport(getLeaveReport);
 
 export const payrollReport = sendReport(getPayrollReport);
 
 export const recruitmentReport = sendReport(getRecruitmentReport);
 
-export const performanceReport = sendReport(getPerformanceReport);
+export const performanceReport = sendScopedReport(getPerformanceReport);
 
 export const assetReport = sendReport(getAssetReport);

@@ -12,6 +12,12 @@ import {
   objectId,
 } from "./commonValidators.js";
 
+const MANUAL_ASSET_STATUSES =
+  Object.values(ASSET_STATUS).filter(
+    (status) =>
+      status !== ASSET_STATUS.ASSIGNED
+  );
+
 export const assetSchema = z.object({
   assetTag: z
     .string()
@@ -54,8 +60,8 @@ export const assetSchema = z.object({
   ).optional(),
 
   status: enumValue(
-    Object.values(ASSET_STATUS),
-    "Invalid asset status"
+    MANUAL_ASSET_STATUSES,
+    "Asset can only be marked assigned through the assignment workflow"
   ).optional(),
 
   purchaseDate:

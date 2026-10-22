@@ -52,12 +52,26 @@ test("candidate business, missing, duplicate, and unexpected errors reach centra
     create: Candidate.create,
     findById: Candidate.findById,
     findByIdAndUpdate: Candidate.findByIdAndUpdate,
+    findOneAndUpdate: Candidate.findOneAndUpdate,
   };
-  Job.findById = async () => ({ status: "open" });
+  const openJob = {
+    status: "open",
+    vacancies: 1,
+    filledPositions: 0,
+    closingDate: null,
+  };
+  let foundCandidate = candidate;
+  Job.findById = async () => openJob;
   Candidate.findOne = async () => null;
   Candidate.create = async () => candidate;
-  Candidate.findById = () => ({ populate: async () => candidate });
+  Candidate.findById = () => ({
+    populate: async () => foundCandidate,
+    then(resolve, reject) {
+      return Promise.resolve(foundCandidate).then(resolve, reject);
+    },
+  });
   Candidate.findByIdAndUpdate = async () => candidate;
+  Candidate.findOneAndUpdate = async () => candidate;
 
   try {
     await withServer(async (request) => {
@@ -83,7 +97,7 @@ test("candidate business, missing, duplicate, and unexpected errors reach centra
       assert.equal(closedJob.status, 400);
       assert.equal((await closedJob.json()).message, "Candidate can only be added to an open job");
 
-      Job.findById = async () => ({ status: "open" });
+      Job.findById = async () => openJob;
       Candidate.findOne = async () => candidate;
       const existing = await request("POST", "/candidates", input);
       assert.equal(existing.status, 400);
@@ -114,7 +128,7 @@ test("candidate business, missing, duplicate, and unexpected errors reach centra
       assert.equal(unexpected.status, 500);
       assert.equal((await unexpected.json()).success, false);
 
-      Candidate.findById = () => ({ populate: async () => null });
+      foundCandidate = null;
       const missingGet = await request("GET", `/candidates/${id}`);
       assert.equal(missingGet.status, 404);
       assert.equal((await missingGet.json()).message, "Candidate not found");
@@ -148,6 +162,7 @@ test("candidate business, missing, duplicate, and unexpected errors reach centra
       assert.equal((await updateDuplicate.json()).message, "Candidate already exists for this job");
 
       Candidate.findByIdAndUpdate = async () => candidate;
+      foundCandidate = candidate;
       const updated = await request("PUT", `/candidates/${id}`, { name: "Updated" });
       assert.equal(updated.status, 200);
       assert.equal((await updated.json()).message, "Candidate updated successfully");
@@ -161,6 +176,7 @@ test("candidate business, missing, duplicate, and unexpected errors reach centra
     Candidate.create = originals.create;
     Candidate.findById = originals.findById;
     Candidate.findByIdAndUpdate = originals.findByIdAndUpdate;
+    Candidate.findOneAndUpdate = originals.findOneAndUpdate;
   }
 });
 

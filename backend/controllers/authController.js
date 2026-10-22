@@ -2,6 +2,7 @@ import AppError from "../utils/AppError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
+import { changeOwnPassword as changePasswordService } from "../services/passwordService.js";
 
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -31,7 +32,10 @@ export const loginUser = asyncHandler(async (req, res) => {
   user.lastLogin = new Date();
   await user.save();
 
-  const token = generateToken(user._id);
+  const token = generateToken(
+    user._id,
+    user.tokenVersion || 0
+  );
 
   res.status(200).json({
     success: true,
@@ -42,13 +46,37 @@ export const loginUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      mustChangePassword:
+        Boolean(user.mustChangePassword),
     },
   });
 });
 
 export const getMyProfile = asyncHandler(async (req, res) => {
+  const user = req.user.toObject
+    ? req.user.toObject()
+    : { ...req.user };
+
+  delete user.password;
+  delete user.tokenVersion;
+  delete user.accountGuardVersion;
+
   res.status(200).json({
     success: true,
-    user: req.user,
+    user,
+  });
+});
+
+export const changeOwnPassword = asyncHandler(async (req, res) => {
+  const user = await changePasswordService(
+    req.user._id,
+    req.body.currentPassword,
+    req.body.newPassword
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+    user,
   });
 });

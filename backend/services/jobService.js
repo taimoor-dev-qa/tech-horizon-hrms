@@ -5,6 +5,12 @@ import {
   validateJobStructure,
 } from "./jobValidationService.js";
 import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+import {
+  assertJobCanBeDeleted,
+} from "./resourceReferenceService.js";
+import {
+  validateJobLifecycle,
+} from "./recruitmentLifecycleService.js";
 
 const duplicateConstraints = [
   { fields: ["code"], message: "Job code already exists" },
@@ -26,6 +32,8 @@ export const createJob = async (
     data.department,
     data.designation
   );
+
+  await validateJobLifecycle(data);
 
   try {
     return await Job.create({
@@ -58,6 +66,11 @@ export const updateJob = async (
     designation
   );
 
+  await validateJobLifecycle(
+    data,
+    job
+  );
+
   Object.assign(job, data);
 
   try {
@@ -70,5 +83,13 @@ export const updateJob = async (
 };
 
 export const deleteJob = async (id) => {
+  const job = await Job.findById(id);
+
+  if (!job) {
+    return null;
+  }
+
+  await assertJobCanBeDeleted(id);
+
   return Job.findByIdAndDelete(id);
 };

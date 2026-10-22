@@ -4,6 +4,8 @@ import Attendance
 
 import Employee
   from "../models/Employee.js";
+import Shift
+  from "../models/Shift.js";
 
 import {
   ATTENDANCE_STATUS,
@@ -14,6 +16,7 @@ import {
   calculateWorkingMinutes,
   getAttendanceStatus,
   getCurrentDate,
+  getPreviousDate,
 } from "./attendanceTimeService.js";
 
 import {
@@ -117,11 +120,37 @@ export const checkOut = async (
       settings.timezone
     );
 
-  const attendance =
+  let attendance =
     await Attendance.findOne({
       employee: employee._id,
       attendanceDate,
     });
+
+  if (!attendance) {
+    const previousAttendance =
+      await Attendance.findOne({
+        employee: employee._id,
+        attendanceDate:
+          getPreviousDate(
+            attendanceDate
+          ),
+      });
+
+    if (previousAttendance) {
+      const recordedShiftId =
+        previousAttendance.shift?._id ||
+        previousAttendance.shift;
+
+      const recordedShift =
+        await Shift.findById(
+          recordedShiftId
+        ).select("isNightShift");
+
+      if (recordedShift?.isNightShift) {
+        attendance = previousAttendance;
+      }
+    }
+  }
 
   if (!attendance) {
     throw new AppError("Please check in before checking out", 400);

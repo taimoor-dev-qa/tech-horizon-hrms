@@ -116,6 +116,7 @@ const createEmployeeInSession =
         email,
         password,
         role,
+        mustChangePassword: true,
       });
 
     await user.save({

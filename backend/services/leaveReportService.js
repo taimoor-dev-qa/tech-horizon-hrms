@@ -1,30 +1,30 @@
 import LeaveRequest
   from "../models/LeaveRequest.js";
 
-import Employee from "../models/Employee.js";
-
 import {
   validateDateRange,
 } from "./reportValidationService.js";
+import {
+  getAccessibleEmployeeIds,
+} from "./employeeAccessService.js";
 
-export const getLeaveReport = async ({
-  startDate,
-  endDate,
-  employee,
-  department,
-  status,
-  leaveType,
-} = {}) => {
+export const getLeaveReport = async (
+  actor,
+  {
+    startDate,
+    endDate,
+    employee,
+    department,
+    status,
+    leaveType,
+  } = {}
+) => {
   validateDateRange(
     startDate,
     endDate
   );
 
   const filter = {};
-
-  if (employee) {
-    filter.employee = employee;
-  }
 
   if (status) {
     filter.status = status;
@@ -44,16 +44,25 @@ export const getLeaveReport = async ({
     };
   }
 
-  if (department) {
-    const employees =
-      await Employee.find({
-        department,
-      }).select("_id");
+  const employeeFilter = {};
 
+  if (employee) {
+    employeeFilter._id = employee;
+  }
+
+  if (department) {
+    employeeFilter.department = department;
+  }
+
+  const employees =
+    await getAccessibleEmployeeIds(
+      actor,
+      employeeFilter
+    );
+
+  if (employees) {
     filter.employee = {
-      $in: employees.map(
-        (item) => item._id
-      ),
+      $in: employees,
     };
   }
 

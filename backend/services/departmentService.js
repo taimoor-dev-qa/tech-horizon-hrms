@@ -1,6 +1,9 @@
 import Department from "../models/Department.js";
 import AppError from "../utils/AppError.js";
 import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+import {
+  assertDepartmentCanBeDeleted,
+} from "./resourceReferenceService.js";
 
 const duplicateConstraints = [
   { fields: ["name"], message: "Department name or code already exists" },
@@ -52,5 +55,13 @@ export const updateDepartment = async (id, data) => {
 };
 
 export const deleteDepartment = async (id) => {
+  const department = await Department.findById(id);
+
+  if (!department) {
+    return null;
+  }
+
+  await assertDepartmentCanBeDeleted(id);
+
   return Department.findByIdAndDelete(id);
 };

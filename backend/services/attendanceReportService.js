@@ -1,17 +1,21 @@
 import Attendance from "../models/Attendance.js";
-import Employee from "../models/Employee.js";
-
 import {
   validateDateRange,
 } from "./reportValidationService.js";
+import {
+  getAccessibleEmployeeIds,
+} from "./employeeAccessService.js";
 
-export const getAttendanceReport = async ({
-  startDate,
-  endDate,
-  employee,
-  department,
-  status,
-} = {}) => {
+export const getAttendanceReport = async (
+  actor,
+  {
+    startDate,
+    endDate,
+    employee,
+    department,
+    status,
+  } = {}
+) => {
   validateDateRange(
     startDate,
     endDate
@@ -26,24 +30,29 @@ export const getAttendanceReport = async ({
     };
   }
 
-  if (employee) {
-    filter.employee = employee;
-  }
-
   if (status) {
     filter.status = status;
   }
 
-  if (department) {
-    const employees =
-      await Employee.find({
-        department,
-      }).select("_id");
+  const employeeFilter = {};
 
+  if (employee) {
+    employeeFilter._id = employee;
+  }
+
+  if (department) {
+    employeeFilter.department = department;
+  }
+
+  const employees =
+    await getAccessibleEmployeeIds(
+      actor,
+      employeeFilter
+    );
+
+  if (employees) {
     filter.employee = {
-      $in: employees.map(
-        (item) => item._id
-      ),
+      $in: employees,
     };
   }
 

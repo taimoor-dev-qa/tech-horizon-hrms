@@ -1,5 +1,7 @@
 import Attendance from "../models/Attendance.js";
-import Employee from "../models/Employee.js";
+import {
+  getAccessibleEmployeeIds,
+} from "./employeeAccessService.js";
 
 const populateAttendance = (query) => {
   return query
@@ -31,35 +33,37 @@ const populateAttendance = (query) => {
     );
 };
 
-const getEmployeeFilter = async ({
+const getEmployeeFilter = async (actor, {
   employee,
   department,
 }) => {
+  const employeeFilter = {};
+
   if (employee) {
-    return [employee];
+    employeeFilter._id = employee;
   }
 
-  if (!department) {
-    return null;
+  if (department) {
+    employeeFilter.department = department;
   }
 
-  const employees = await Employee.find({
-    department,
-  }).select("_id");
-
-  return employees.map(
-    (employeeRecord) => employeeRecord._id
+  return getAccessibleEmployeeIds(
+    actor,
+    employeeFilter
   );
 };
 
-export const getAttendanceList = async ({
-  date,
-  employee,
-  department,
-  status,
-  page = 1,
-  limit = 20,
-}) => {
+export const getAttendanceList = async (
+  actor,
+  {
+    date,
+    employee,
+    department,
+    status,
+    page = 1,
+    limit = 20,
+  }
+) => {
   const filters = {};
 
   if (date) {
@@ -70,10 +74,14 @@ export const getAttendanceList = async ({
     filters.status = status;
   }
 
-  const employeeIds = await getEmployeeFilter({
-    employee,
-    department,
-  });
+  const employeeIds =
+    await getEmployeeFilter(
+      actor,
+      {
+        employee,
+        department,
+      }
+    );
 
   if (employeeIds) {
     filters.employee = {
@@ -123,11 +131,25 @@ export const getAttendanceList = async ({
 };
 
 export const getAttendanceSummary = async (
+  actor,
   date
 ) => {
-  const records = await Attendance.find({
+  const filter = {
     attendanceDate: date,
-  }).select("status");
+  };
+
+  const employeeIds =
+    await getAccessibleEmployeeIds(actor);
+
+  if (employeeIds) {
+    filter.employee = {
+      $in: employeeIds,
+    };
+  }
+
+  const records = await Attendance.find(
+    filter
+  ).select("status");
 
   const summary = {
     total: records.length,

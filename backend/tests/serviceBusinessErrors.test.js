@@ -185,6 +185,7 @@ test("employee creation links User and Employee and update/status read the emplo
   t.mock.method(Department, "findById", () => query({ _id: department }));
   t.mock.method(Designation, "findById", () => query({ _id: designation, department }));
   t.mock.method(User, "findOne", () => query(null));
+  t.mock.method(User, "findById", (id) => query({ _id: id, role: "employee" }));
   t.mock.method(Counter, "findById", () => query({ seq: 1 }));
   t.mock.method(Counter, "findOneAndUpdate", async () => ({ seq: 2 }));
   let savedUser;
@@ -203,6 +204,7 @@ test("employee creation links User and Employee and update/status read the emplo
   });
   assert.equal(String(employee.user), String(savedUser._id));
   assert.equal(savedUser.role, "employee");
+  assert.equal(savedUser.mustChangePassword, true);
   assert.equal(employee.employeeId, "TH-0002");
   const ids = [];
   t.mock.method(Employee, "findById", (id) => { ids.push(id); return query(employee); });

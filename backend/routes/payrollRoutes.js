@@ -10,6 +10,7 @@ import {
 import {
   generatePayroll,
   markPayrollPaid,
+  recalculateDraftPayroll,
 } from "../controllers/payrollActionController.js";
 
 import {
@@ -36,6 +37,7 @@ import {
   bulkPayrollSchema,
   payrollCreateSchema,
   payrollPaidSchema,
+  payrollRecalculationSchema,
 } from "../validators/payrollValidators.js";
 
 const router = express.Router();
@@ -87,6 +89,17 @@ router.post(
   payrollAccess,
   validateRequest(payrollCreateSchema),
   createPayroll
+);
+
+router.patch(
+  "/:id/recalculate",
+  protect,
+  payrollAccess,
+  validateObjectId("id"),
+  validateRequest(
+    payrollRecalculationSchema
+  ),
+  recalculateDraftPayroll
 );
 
 router.patch(

@@ -1,6 +1,7 @@
 import express from "express";
 
 import {
+  changeOwnPassword,
   getMyProfile,
   loginUser,
 } from "../controllers/authController.js";
@@ -14,6 +15,9 @@ import validateRequest
 import {
   loginSchema,
 } from "../validators/authValidators.js";
+import {
+  changePasswordSchema,
+} from "../validators/passwordValidators.js";
 
 const router = express.Router();
 
@@ -34,6 +38,13 @@ router.get(
   "/me",
   protect,
   getMyProfile
+);
+
+router.patch(
+  "/change-password",
+  protect,
+  validateRequest(changePasswordSchema),
+  changeOwnPassword
 );
 
 export default router;

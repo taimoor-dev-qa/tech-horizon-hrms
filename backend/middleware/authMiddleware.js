@@ -69,6 +69,31 @@ const protect =
         );
       }
 
+      if (
+        (decoded.tokenVersion ?? 0) !==
+          (user.tokenVersion || 0)
+      ) {
+        throw new AppError(
+          "Authentication token is no longer valid",
+          401
+        );
+      }
+
+      const isPasswordChangeRequest =
+        req.method === "PATCH" &&
+        req.originalUrl.split("?")[0] ===
+          "/api/auth/change-password";
+
+      if (
+        user.mustChangePassword &&
+        !isPasswordChangeRequest
+      ) {
+        throw new AppError(
+          "You must change your password before continuing",
+          403
+        );
+      }
+
       req.user =
         user;
 

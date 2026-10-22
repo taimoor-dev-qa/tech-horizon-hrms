@@ -13,6 +13,9 @@ import {
   validateProjectManagementAccess,
 } from "./projectAccessService.js";
 import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+import {
+  assertProjectCanBeDeleted,
+} from "./resourceReferenceService.js";
 
 const duplicateConstraints = [
   { fields: ["code"], message: "Project code already exists" },
@@ -138,6 +141,15 @@ export const updateProject =
 
 export const deleteProject =
   async (id) => {
+    const project =
+      await Project.findById(id);
+
+    if (!project) {
+      return null;
+    }
+
+    await assertProjectCanBeDeleted(id);
+
     return Project.findByIdAndDelete(
       id
     );

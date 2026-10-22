@@ -96,6 +96,18 @@ export const payrollPaidSchema =
       .optional(),
   });
 
+export const payrollRecalculationSchema =
+  z.object({
+    overtimeHours:
+      nonNegativeNumber.optional(),
+
+    bonus:
+      nonNegativeNumber.optional(),
+
+    otherDeduction:
+      nonNegativeNumber.optional(),
+  });
+
 export const salaryDeactivateSchema =
   z.object({
     effectiveTo: dateString,

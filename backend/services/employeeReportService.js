@@ -1,12 +1,20 @@
 import Employee from "../models/Employee.js";
+import {
+  applyEmployeeAccessScope,
+  EMPLOYEE_DIRECTORY_FIELDS,
+  hasFullEmployeeAccess,
+} from "./employeeAccessService.js";
 
-export const getEmployeeReport = async ({
-  department,
-  designation,
-  team,
-  status,
-  employmentType,
-} = {}) => {
+export const getEmployeeReport = async (
+  actor,
+  {
+    department,
+    designation,
+    team,
+    status,
+    employmentType,
+  } = {}
+) => {
   const filter = {};
 
   if (department) {
@@ -29,7 +37,22 @@ export const getEmployeeReport = async ({
     filter.employmentType = employmentType;
   }
 
-  const employees = await Employee.find(filter)
+  const scopedFilter =
+    applyEmployeeAccessScope(
+      actor,
+      filter
+    );
+
+  let employeeQuery =
+    Employee.find(scopedFilter);
+
+  if (!hasFullEmployeeAccess(actor)) {
+    employeeQuery = employeeQuery.select(
+      EMPLOYEE_DIRECTORY_FIELDS
+    );
+  }
+
+  const employees = await employeeQuery
     .populate("user", "name email role")
     .populate("department", "name code")
     .populate("designation", "name code")

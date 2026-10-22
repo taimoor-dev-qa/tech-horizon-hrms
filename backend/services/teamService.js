@@ -3,6 +3,9 @@ import Department from "../models/Department.js";
 import Team from "../models/Team.js";
 import User from "../models/User.js";
 import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+import {
+  assertTeamCanBeDeleted,
+} from "./resourceReferenceService.js";
 
 const duplicateConstraints = [
   { fields: ["code"], message: "Team name or code already exists" },
@@ -107,5 +110,13 @@ export const updateTeam = async (id, data) => {
 };
 
 export const deleteTeam = async (id) => {
+  const team = await Team.findById(id);
+
+  if (!team) {
+    return null;
+  }
+
+  await assertTeamCanBeDeleted(id);
+
   return Team.findByIdAndDelete(id);
 };

@@ -42,6 +42,24 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+
+    tokenVersion: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    accountGuardVersion: {
+      type: Number,
+      default: 0,
+      min: 0,
+      select: false,
+    },
+
     lastLogin: {
       type: Date,
       default: null,

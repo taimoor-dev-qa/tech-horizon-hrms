@@ -19,6 +19,9 @@ import {
 import runTransaction
   from "../utils/runTransaction.js";
 import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+import {
+  PRIVILEGED_ROLES,
+} from "../validators/adminUserValidators.js";
 
 const duplicateConstraints = [
   { fields: ["email"], message: "Email already exists" },
@@ -171,6 +174,35 @@ export const updateEmployee =
               )
             ) {
               throw new AppError("Invalid employee role", 400);
+            }
+
+            const linkedUser =
+              await User.findById(
+                employee.user
+              ).session(session);
+
+            if (
+              linkedUser &&
+              PRIVILEGED_ROLES.includes(
+                linkedUser.role
+              )
+            ) {
+              throw new AppError(
+                "Privileged accounts must be managed through the admin user workflow",
+                403
+              );
+            }
+
+            if (
+              linkedUser &&
+              String(linkedUser._id) ===
+                String(actor?._id) &&
+              data.role !== linkedUser.role
+            ) {
+              throw new AppError(
+                "You cannot change your own role",
+                400
+              );
             }
 
             userUpdates.role =

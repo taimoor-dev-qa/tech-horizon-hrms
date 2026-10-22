@@ -2,6 +2,9 @@ import AppError from "../utils/AppError.js";
 import Department from "../models/Department.js";
 import Designation from "../models/Designation.js";
 import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+import {
+  assertDesignationCanBeDeleted,
+} from "./resourceReferenceService.js";
 
 const duplicateConstraints = [
   { fields: ["code"], message: "Designation name or code already exists" },
@@ -83,5 +86,14 @@ export const updateDesignation = async (
 };
 
 export const deleteDesignation = async (id) => {
+  const designation =
+    await Designation.findById(id);
+
+  if (!designation) {
+    return null;
+  }
+
+  await assertDesignationCanBeDeleted(id);
+
   return Designation.findByIdAndDelete(id);
 };

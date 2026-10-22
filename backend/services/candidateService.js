@@ -6,6 +6,10 @@ import {
 } from "../constants/recruitment.js";
 
 import AppError from "../utils/AppError.js";
+import {
+    validateCandidateTransition,
+    validateJobAcceptingCandidates,
+} from "./recruitmentLifecycleService.js";
 
 const isCandidateEmailDuplicate = (error) => {
     if (error?.code !== 11000) {
@@ -39,12 +43,7 @@ export const createCandidate = async (
         throw new AppError("Job not found", 400);
     }
 
-    if (job.status !== "open") {
-        throw new AppError(
-            "Candidate can only be added to an open job",
-            400
-        );
-    }
+    await validateJobAcceptingCandidates(job);
 
     const existing =
         await Candidate.findOne({
@@ -89,17 +88,44 @@ export const updateCandidateStatus = async (
         );
     }
 
-    return Candidate.findByIdAndUpdate(
-        id,
-        {
-            status,
-            ...(notes !== undefined && { notes }),
-        },
-        {
-            new: true,
-            runValidators: true,
-        }
+    const candidate =
+        await Candidate.findById(id);
+
+    if (!candidate) {
+        return null;
+    }
+
+    validateCandidateTransition(
+        candidate,
+        status
     );
+
+    const updated =
+        await Candidate.findOneAndUpdate(
+            {
+                _id: id,
+                status: candidate.status,
+            },
+            {
+                $set: {
+                    status,
+                    ...(notes !== undefined && { notes }),
+                },
+            },
+            {
+                new: true,
+                runValidators: true,
+            }
+        );
+
+    if (!updated) {
+        throw new AppError(
+            "Candidate status changed; retry the request",
+            409
+        );
+    }
+
+    return updated;
 };
 
 export const updateCandidate = async (

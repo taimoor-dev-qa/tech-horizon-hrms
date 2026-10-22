@@ -1,6 +1,9 @@
 import AppError from "../utils/AppError.js";
 import Shift from "../models/Shift.js";
 import { mapDuplicateKeyError } from "../utils/mongoDuplicateKey.js";
+import {
+  assertShiftCanBeDeleted,
+} from "./resourceReferenceService.js";
 
 const duplicateConstraints = [
   { fields: ["code"], message: "Shift name or code already exists" },
@@ -54,5 +57,13 @@ export const updateShift = async (
 };
 
 export const deleteShift = async (id) => {
+  const shift = await Shift.findById(id);
+
+  if (!shift) {
+    return null;
+  }
+
+  await assertShiftCanBeDeleted(id);
+
   return Shift.findByIdAndDelete(id);
 };

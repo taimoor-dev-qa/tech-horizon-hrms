@@ -15,6 +15,9 @@ import {
 
 import runTransaction
   from "../utils/runTransaction.js";
+import {
+  PRIVILEGED_ROLES,
+} from "../validators/adminUserValidators.js";
 
 const DISABLED_STATUSES = [
   EMPLOYEE_STATUS.INACTIVE,
@@ -114,6 +117,41 @@ export const setEmployeeStatus =
             return null;
           }
 
+          const linkedUser =
+            await User.findById(
+              employee.user
+            ).session(session);
+
+          const shouldDisable =
+            DISABLED_STATUSES.includes(
+              status
+            );
+
+          if (
+            linkedUser &&
+            PRIVILEGED_ROLES.includes(
+              linkedUser.role
+            )
+          ) {
+            throw new AppError(
+              "Privileged accounts must be managed through the admin user workflow",
+              403
+            );
+          }
+
+          if (
+            shouldDisable &&
+            linkedUser &&
+            actor?._id &&
+            String(linkedUser._id) ===
+              String(actor._id)
+          ) {
+            throw new AppError(
+              "You cannot deactivate your own account",
+              400
+            );
+          }
+
           employee.status =
             status;
 
@@ -137,11 +175,6 @@ export const setEmployeeStatus =
           await employee.save({
             session,
           });
-
-          const shouldDisable =
-            DISABLED_STATUSES.includes(
-              status
-            );
 
           await User
             .findByIdAndUpdate(

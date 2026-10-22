@@ -101,6 +101,26 @@ export const getCurrentDate = (
   ).format(new Date());
 };
 
+export const getPreviousDate = (
+  date
+) => {
+  const [year, month, day] = date
+    .split("-")
+    .map(Number);
+
+  const previousDate = new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day - 1
+    )
+  );
+
+  return previousDate
+    .toISOString()
+    .slice(0, 10);
+};
+
 export const calculateLateMinutes = (
   checkIn,
   shift,

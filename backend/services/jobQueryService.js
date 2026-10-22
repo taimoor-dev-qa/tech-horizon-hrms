@@ -3,6 +3,7 @@ import Job
 
 import {
   applyJobReadAccess,
+  hasFullRecruitmentAccess,
   validateJobReadAccess,
 } from "./recruitmentAccessService.js";
 
@@ -10,6 +11,9 @@ import {
   buildPagination,
   getPagination,
 } from "../utils/pagination.js";
+import {
+  getRecruitmentCurrentDate,
+} from "./recruitmentLifecycleService.js";
 
 const populateJob = (
   query
@@ -74,10 +78,16 @@ export const getJobs =
      * Step 28C security.
      * REMOVE NAHI KARNI.
      */
+    const currentDate =
+      hasFullRecruitmentAccess(actor)
+        ? null
+        : await getRecruitmentCurrentDate();
+
     applyJobReadAccess(
       actor,
       filter,
-      status
+      status,
+      currentDate
     );
 
     const pagination =
@@ -133,9 +143,15 @@ export const getJobById =
       return null;
     }
 
+    const currentDate =
+      hasFullRecruitmentAccess(actor)
+        ? null
+        : await getRecruitmentCurrentDate();
+
     validateJobReadAccess(
       actor,
-      job
+      job,
+      currentDate
     );
 
     return populateJob(
